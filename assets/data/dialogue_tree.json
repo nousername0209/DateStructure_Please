@@ -1,0 +1,71 @@
+{
+  "start": "briefing",
+  "nodes": {
+    "briefing": {
+      "text": "Today the moderator desk received a long-distance caution rule.",
+      "choices": [
+        {
+          "label": "Check city routes",
+          "next": "map_hint"
+        },
+        {
+          "label": "Ask about suspicious users",
+          "next": "relationship_hint"
+        }
+      ]
+    },
+    "map_hint": {
+      "text": "Use the weighted map graph before approving any distant pair.",
+      "choices": []
+    },
+    "relationship_hint": {
+      "text": "A friend-of-an-ex path may still be enough to reject a match.",
+      "choices": []
+    }
+  },
+  "hobbies": {
+    "name": "hobby",
+    "children": [
+      {
+        "name": "sports",
+        "children": [
+          {
+            "name": "ball_games",
+            "children": [
+              {
+                "name": "football"
+              },
+              {
+                "name": "basketball"
+              }
+            ]
+          },
+          {
+            "name": "running"
+          }
+        ]
+      },
+      {
+        "name": "arts",
+        "children": [
+          {
+            "name": "music",
+            "children": [
+              {
+                "name": "jazz"
+              }
+            ]
+          },
+          {
+            "name": "painting",
+            "children": [
+              {
+                "name": "oil_painting"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import math
+from pathlib import Path
 
 import pygame
 
@@ -37,6 +38,12 @@ class PlayScene:
         self.notice_text = ""
         self.notice_timer = 0.0
         self.warning_timer = 0.0
+        self.active_view: str | None = None
+        self.dialogue_active = True
+        self.dialogue_history: list[str] = []
+        self.tree_image: pygame.Surface | None = None
+        self.graph_image: pygame.Surface | None = None
+        self.asset_dir = Path(__file__).resolve().parents[1] / "assets" / "data"
         self.engine.ui_stack.clear()
         self.engine.ui_stack.push("PLAY")
 
@@ -45,6 +52,8 @@ class PlayScene:
         screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("DateStructure, Please")
         clock = pygame.time.Clock()
+        self.tree_image = pygame.image.load(str(self.asset_dir / "tree.png")).convert_alpha()
+        self.graph_image = pygame.image.load(str(self.asset_dir / "graph.png")).convert_alpha()
         fonts = {
             "title": pygame.font.SysFont("malgungothic", 34),
             "heading": pygame.font.SysFont("malgungothic", 24),
@@ -79,6 +88,19 @@ class PlayScene:
         return self.engine.analyze_pair(first["id"], second["id"])
 
     def _handle_click(self, pos: tuple[int, int]) -> None:
+        if self.dialogue_active:
+            for button in self.buttons:
+                if button.rect.collidepoint(pos):
+                    if button.action.startswith("dialogue_choice"):
+                        self.dialogue_history.append(self.engine.dialogue.current_id)
+                        choice_index = int(button.action.split("_")[-1])
+                        self.engine.dialogue.choose(choice_index)
+                        return
+                    if button.action == "dialogue_back":
+                        self._go_back_dialogue()
+                        return
+            return
+
         current = self.engine.ui_stack.peek()
         for button in self.buttons:
             if button.rect.collidepoint(pos):
@@ -91,6 +113,12 @@ class PlayScene:
                 elif button.action == "next":
                     self.pair_index = (self.pair_index + 1) % len(self.profiles)
                     self.notice_text = ""
+                elif button.action == "tree":
+                    self.active_view = "tree"
+                    self.notice_text = ""
+                elif button.action == "graph":
+                    self.active_view = "graph"
+                    self.notice_text = ""
                 elif button.action == "close_warning":
                     self._close_overlay("WARNING")
                 elif button.action == "close_inspect":
@@ -98,6 +126,15 @@ class PlayScene:
                 return
 
     def _handle_escape(self) -> bool:
+        # ESC during dialogue should close the dialogue (not go back).
+        if self.dialogue_active:
+            self.dialogue_active = False
+            return True
+
+        if self.active_view is not None:
+            self.active_view = None
+            return True
+
         current = self.engine.ui_stack.peek()
         if current in {"WARNING", "INSPECT"}:
             self._close_overlay(current)
@@ -140,7 +177,15 @@ class PlayScene:
                 self.engine.ui_stack.push("WARNING")
 
     def _draw(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        if self.dialogue_active:
+            self._draw_dialogue(screen, fonts)
+            return
+
         analysis = self._analysis()
+        if self.active_view is not None:
+            self._draw_asset_view(screen, fonts)
+            return
+
         screen.fill(BG)
         self.buttons = []
 
@@ -156,6 +201,67 @@ class PlayScene:
             self._draw_inspect_overlay(screen, fonts, analysis)
         elif current == "WARNING":
             self._draw_warning_overlay(screen, fonts, analysis)
+
+    def _draw_asset_view(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        screen.fill(BG)
+        image = self.tree_image if self.active_view == "tree" else self.graph_image
+        if image is None:
+            self._text(screen, fonts["heading"], "이미지를 불러올 수 없습니다.", (40, 40), WARN)
+            return
+
+        image_rect = image.get_rect()
+        max_width = WIDTH - 80
+        max_height = HEIGHT - 120
+        if image_rect.width > max_width or image_rect.height > max_height:
+            scale = min(max_width / image_rect.width, max_height / image_rect.height)
+            image = pygame.transform.smoothscale(
+                image,
+                (round(image_rect.width * scale), round(image_rect.height * scale)),
+            )
+            image_rect = image.get_rect()
+
+        image_rect.center = (WIDTH // 2, HEIGHT // 2)
+        screen.blit(image, image_rect)
+        title = "트리" if self.active_view == "tree" else "그래프"
+        self._text(screen, fonts["heading"], title, (40, 30), INK)
+        self._text(screen, fonts["small"], "ESC를 눌러 돌아가기", (40, HEIGHT - 40), MUTED)
+
+    def _draw_dialogue(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        screen.fill(BG)
+        self.buttons = []
+        dialogue = self.engine.dialogue.current
+
+        panel = pygame.Rect(60, 80, WIDTH - 120, 320)
+        pygame.draw.rect(screen, CARD, panel, border_radius=12)
+        pygame.draw.rect(screen, LINE, panel, 2, border_radius=12)
+        self._text(screen, fonts["title"], "Dialogue", (panel.x + 24, panel.y + 20), INK)
+
+        text_lines = self._wrap_text(fonts["body"], dialogue.text, panel.width - 48)
+        line_y = panel.y + 80
+        for line in text_lines:
+            self._text(screen, fonts["body"], line, (panel.x + 24, line_y), INK)
+            line_y += fonts["body"].get_height() + 6
+
+        if self.dialogue_history:
+            back_button = Button(pygame.Rect(panel.right - 116, panel.y + 16, 96, 40), "뒤로", "dialogue_back")
+            self._draw_button(screen, fonts, back_button, WARN)
+
+        if dialogue.choices:
+            choice_y = line_y + 16
+            for index, choice in enumerate(dialogue.choices):
+                button_rect = pygame.Rect(panel.x + 24, choice_y, panel.width - 48, 48)
+                choice_button = Button(button_rect, choice["label"], f"dialogue_choice_{index}")
+                self._draw_button(screen, fonts, choice_button, ACCENT)
+                choice_y += 60
+        else:
+            info_text = "선택지가 없습니다. ESC를 눌러 대화를 종료하거나 뒤로 가기 버튼을 누르세요." if self.dialogue_history else "선택지가 없습니다. ESC를 눌러 대화를 종료하세요."
+            self._text(
+                screen,
+                fonts["small"],
+                info_text,
+                (panel.x + 24, panel.bottom - 40),
+                MUTED,
+            )
 
     def _draw_profile_card(
         self,
@@ -189,8 +295,12 @@ class PlayScene:
         self._text(screen, fonts["small"], f"HobbyTree distance: {analysis.hobby_distance}", (panel.x + 24, panel.y + 124), MUTED)
 
     def _draw_actions(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        tree_button = Button(pygame.Rect(WIDTH - 236, 30, 100, 42), "트리", "tree")
+        graph_button = Button(pygame.Rect(WIDTH - 122, 30, 100, 42), "그래프", "graph")
         inspect = Button(pygame.Rect(46, 514, 170, 52), "INSPECT", "inspect")
         next_pair = Button(pygame.Rect(744, 514, 170, 52), "NEXT PAIR", "next")
+        self._draw_button(screen, fonts, tree_button, ACCENT)
+        self._draw_button(screen, fonts, graph_button, ACCENT)
         self._draw_button(screen, fonts, inspect, WARN)
         self._draw_button(screen, fonts, next_pair, ACCENT)
         if self.notice_text:
@@ -259,6 +369,31 @@ class PlayScene:
         color: tuple[int, int, int],
     ) -> None:
         screen.blit(font.render(text, True, color), pos)
+
+    def _go_back_dialogue(self) -> None:
+        if not self.dialogue_history:
+            return
+        previous_id = self.dialogue_history.pop()
+        self.engine.dialogue.current_id = previous_id
+
+    def _wrap_text(self, font: pygame.font.Font, text: str, max_width: int) -> list[str]:
+        words = text.split(" ")
+        lines: list[str] = []
+        current_line = ""
+
+        for word in words:
+            candidate = f"{current_line} {word}" if current_line else word
+            if font.size(candidate)[0] <= max_width:
+                current_line = candidate
+            else:
+                if current_line:
+                    lines.append(current_line)
+                current_line = word
+
+        if current_line:
+            lines.append(current_line)
+
+        return lines
 
 
 def run_game(engine: MatchmakingEngine) -> None:

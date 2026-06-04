@@ -2,24 +2,24 @@
   "start": "briefing",
   "nodes": {
     "briefing": {
-      "text": "Today the moderator desk received a long-distance caution rule.",
+      "text": "당신은 이제부터 매칭 시스템의 심사관입니다. 매칭 시스템은 사용자들의 프로필과 활동을 분석하여 서로 잘 맞는 사람들을 연결해주는 역할을 합니다. 당신의 임무는 매칭 시스템이 제안하는 매칭이 적절한지 판단하는 것입니다. 도시 연결 그래프와 취미 트리를 참고하세요.",
       "choices": [
         {
-          "label": "Check city routes",
+          "label": "도시 연결 그래프란?",
           "next": "map_hint"
         },
         {
-          "label": "Ask about suspicious users",
+          "label": "취미 트리란?",
           "next": "relationship_hint"
         }
       ]
     },
     "map_hint": {
-      "text": "Use the weighted map graph before approving any distant pair.",
+      "text": "사는 도시가 매칭에 영향을 미칠 수 있습니다. 거리가 가깝다면 더 자주 만날 수 있어 연애 성공 확률이 올라갑니다. 도시 거리 그래프를 참고해 매칭이 적절한지 판단하세요.",
       "choices": []
     },
     "relationship_hint": {
-      "text": "A friend-of-an-ex path may still be enough to reject a match.",
+      "text": "비슷한 취미의 사용자들은 같은 취미를 공유하여 더 잘 맞을 가능성이 높습니다. 취미 트리를 참고해 매칭이 적절한지 판단하세요.",
       "choices": []
     }
   },

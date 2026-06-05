@@ -173,12 +173,21 @@ class AssetPopup(UILayer):
         self.kind = kind
 
     def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
-        is_tree = self.kind == "tree"
-        title = "트리" if is_tree else "그래프"
+        title_map = {
+            "tree": "트리",
+            "graph_rel": "그래프 - 관계도",
+            "graph_city": "그래프 - 도시",
+        }
+        image_map = {
+            "tree": scene.tree_image,
+            "graph_rel": scene.graph_rel_image,
+            "graph_city": scene.graph_city_image,
+        }
+        title = title_map.get(self.kind, "Asset")
         rect = pygame.Rect(112 + depth * 28, 74 + depth * 22, WIDTH - 224, HEIGHT - 142)
         ui.popup_frame(rect, title, ACCENT, depth)
 
-        image = scene.tree_image if is_tree else scene.graph_image
+        image = image_map.get(self.kind)
         if image is None:
             ui.text("heading", "이미지를 불러올 수 없습니다.", (rect.x + 28, rect.y + 92), WARN)
             ui.button(pygame.Rect(rect.right - 132, rect.y + 14, 104, 34), "CLOSE", "close_asset", WARN)
@@ -261,7 +270,8 @@ class PlayScene:
         self.warning_timer = 0.0
         self.dialogue_history: list[str] = []
         self.tree_image: pygame.Surface | None = None
-        self.graph_image: pygame.Surface | None = None
+        self.graph_rel_image: pygame.Surface | None = None
+        self.graph_city_image: pygame.Surface | None = None
         self.asset_dir = Path(__file__).resolve().parents[1] / "assets" / "data"
         self.engine.ui_stack.clear()
         self.engine.ui_stack.push(DialoguePopup())
@@ -272,7 +282,8 @@ class PlayScene:
         pygame.display.set_caption("DateStructure, Please")
         clock = pygame.time.Clock()
         self.tree_image = pygame.image.load(str(self.asset_dir / "tree.png")).convert_alpha()
-        self.graph_image = pygame.image.load(str(self.asset_dir / "graph.png")).convert_alpha()
+        self.graph_rel_image = pygame.image.load(str(self.asset_dir / "graph_rel.png")).convert_alpha()
+        self.graph_city_image = pygame.image.load(str(self.asset_dir / "graph_city.png")).convert_alpha()
         fonts = {
             "title": pygame.font.SysFont("malgungothic", 34),
             "heading": pygame.font.SysFont("malgungothic", 24),
@@ -326,8 +337,11 @@ class PlayScene:
                 elif button.action == "tree":
                     self.engine.ui_stack.push(AssetPopup("tree"))
                     self.notice_text = ""
-                elif button.action == "graph":
-                    self.engine.ui_stack.push(AssetPopup("graph"))
+                elif button.action == "graph_rel":
+                    self.engine.ui_stack.push(AssetPopup("graph_rel"))
+                    self.notice_text = ""
+                elif button.action == "graph_city":
+                    self.engine.ui_stack.push(AssetPopup("graph_city"))
                     self.notice_text = ""
                 return
 
@@ -379,7 +393,7 @@ class PlayScene:
         ui.text("body", "Moderator review desk", (44, 72), MUTED)
         self._draw_profile_card(ui, analysis.first, pygame.Rect(46, 128, 350, 250))
         self._draw_profile_card(ui, analysis.second, pygame.Rect(564, 128, 350, 250))
-        self._draw_analysis_panel(ui, analysis)
+        self._draw_asset_buttons(ui)
         self._draw_actions(ui)
 
         overlays = self.engine.ui_stack.items()
@@ -411,20 +425,31 @@ class PlayScene:
         ui: UIContext,
         analysis: MatchAnalysis,
     ) -> None:
+        # Matching Analysis 박스 UI는 제거되었으나 분석은 내부적으로 계속 진행됨
+        pass
+
+    def _draw_asset_buttons(self, ui: UIContext) -> None:
         panel = pygame.Rect(278, 410, 404, 150)
         pygame.draw.rect(ui.screen, (250, 249, 244), panel, border_radius=8)
         pygame.draw.rect(ui.screen, LINE, panel, 2, border_radius=8)
-        ui.text("heading", "Matching Analysis", (panel.x + 24, panel.y + 18), INK)
-        ui.text("body", f"매칭 적합도 점수: {analysis.score}", (panel.x + 24, panel.y + 62), ACCENT)
-        distance_text = "unreachable" if math.isinf(analysis.travel_distance) else f"{analysis.travel_distance:.1f}"
-        ui.text("body", f"예상 이동 거리: {distance_text}", (panel.x + 24, panel.y + 94), BLUE)
-        ui.text("small", f"HobbyTree distance: {analysis.hobby_distance}", (panel.x + 24, panel.y + 124), MUTED)
+        ui.text("heading", "그래프 보기", (panel.x + 24, panel.y + 18), INK)
 
     def _draw_actions(self, ui: UIContext) -> None:
-        ui.button(pygame.Rect(WIDTH - 236, 30, 100, 42), "트리", "tree", ACCENT)
-        ui.button(pygame.Rect(WIDTH - 122, 30, 100, 42), "그래프", "graph", ACCENT)
         ui.button(pygame.Rect(46, 514, 170, 52), "INSPECT", "inspect", WARN)
         ui.button(pygame.Rect(744, 514, 170, 52), "NEXT PAIR", "next", ACCENT)
+        
+        # Asset buttons (그래프 보기 패널 내)
+        panel = pygame.Rect(278, 410, 404, 150)
+        button_width = 120
+        button_height = 90
+        button_y = panel.y + 54
+        spacing = 12
+        start_x = panel.x + 24
+        
+        ui.button(pygame.Rect(start_x, button_y, button_width, button_height), "관계도\n(Tree)", "tree", ACCENT)
+        ui.button(pygame.Rect(start_x + button_width + spacing, button_y, button_width, button_height), "관계\n그래프", "graph_rel", ACCENT)
+        ui.button(pygame.Rect(start_x + (button_width + spacing) * 2, button_y, button_width, button_height), "도시\n그래프", "graph_city", ACCENT)
+        
         if self.notice_text:
             ui.text("small", self.notice_text, (46, 588), WARN)
 

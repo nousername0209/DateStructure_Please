@@ -748,33 +748,30 @@ class PlayScene:
             body_text = f"성공적으로 업무를 마쳤습니다! (남은 명성: {self.engine.reputation})"
             color = ACCENT
 
-        # 1. 텍스트 줄바꿈 연산을 가장 먼저 수행 (너비 320px 기준)
         wrapped_lines = ui.wrap_text("body", body_text, 320)
         line_height = ui.fonts["body"].get_height() + 8
         total_text_height = len(wrapped_lines) * line_height
 
-        # 2. 텍스트 높이에 비례하여 패널(박스)의 세로 길이를 동적으로 계산
-        # 기본 베이스 높이 180px + 텍스트가 차지하는 높이를 더해 유연하게 팽창함
-        panel_height = 180 + total_text_height
+        # 1. 텍스트를 밑으로 내릴 공간을 확보하기 위해 기본 베이스 높이를 180에서 200으로 증가
+        panel_height = 200 + total_text_height
         panel = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - panel_height // 2, 400, panel_height)
         
-        # 3. 팽창된 패널을 먼저 화면에 그림
         ui.popup_frame(panel, title_text, color, 0)
 
-        # 4. 헤딩(제목) 렌더링 (위에서 60px 고정)
+        # 2. 헤딩(제목) Y좌표 수정: 패널 상단에서 85px 아래로 내려서 가로선(54px)과 완벽히 분리
         heading_surf = ui.fonts["heading"].render(heading_text, True, color)
-        heading_rect = heading_surf.get_rect(center=(panel.centerx, panel.y + 60))
+        heading_rect = heading_surf.get_rect(center=(panel.centerx, panel.y + 85))
         ui.screen.blit(heading_surf, heading_rect)
         
-        # 5. 본문 텍스트 다중 라인 렌더링
-        line_y = panel.y + 105
+        # 3. 본문 시작 Y좌표도 헤딩이 밀려난 만큼 아래로 이동 (105 -> 125)
+        line_y = panel.y + 125
         for line in wrapped_lines:
             line_surf = ui.fonts["body"].render(line, True, INK)
             line_rect = line_surf.get_rect(center=(panel.centerx, line_y))
             ui.screen.blit(line_surf, line_rect)
             line_y += line_height
         
-        # 6. 버튼 및 하단 텍스트는 무조건 패널의 'bottom'을 기준으로 배치하여 절대 겹치지 않게 방어
+        # 4. 하단 버튼 및 안내 텍스트는 panel.bottom 기준으로 고정
         ui.button(pygame.Rect(panel.centerx - 70, panel.bottom - 75, 140, 40), "RESTART", "restart", BLUE)
         
         info_surf = ui.fonts["small"].render("ESC를 눌러 게임을 종료하세요.", True, MUTED)

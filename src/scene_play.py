@@ -173,14 +173,16 @@ class DialoguePopup(UILayer):
 
 
 class AssetPopup(UILayer):
+    # 클래스 변수로 선언. 팝업을 닫고 다시 열어도 연산 결과(위상)가 영구히 보존됨
+    _layout_cache: dict[str, dict[str, tuple[int, int]]] = {}
+
     def __init__(self, kind: str) -> None:
         self.kind = kind
-        self.cached_layout: dict[str, tuple[int, int]] | None = None
 
     def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
         title_map = {
             "tree": "동적 렌더링: 취미 트리",
-            "graph_rel": "동적 렌더링: 관계도 (구현 대기)",
+            "graph_rel": "동적 렌더링: 인물 관계망 (Directed Graph)",
             "graph_city": "물리 기반 렌더링: 대한민국 도시망",
         }
         title = title_map.get(self.kind, "Asset")
@@ -193,6 +195,8 @@ class AssetPopup(UILayer):
             self._draw_map_graph(scene, ui, content_rect)
         elif self.kind == "tree":
             self._draw_hobby_tree(scene, ui, content_rect)
+        elif self.kind == "graph_rel":
+            self._draw_rel_graph(scene, ui, content_rect) # 관계도 렌더러 활성화
         else:
             ui.text("heading", "해당 그래프 렌더러는 아직 준비되지 않았습니다.", (rect.x + 28, rect.y + 92), WARN)
 
@@ -203,6 +207,10 @@ class AssetPopup(UILayer):
         cities = list(map_data.keys())
         if not cities: return {}
 
+        # 난수 생성기의 시드(Seed)를 42로 고정
+        # 이제 (우주가 멸망해도) 물리 엔진은 항상 똑같은(가로로 넓게 퍼진) 최적의 위상을 도출함
+        random.seed(42)
+
         center_x, center_y = area.width / 2, area.height / 2
         positions = {city: [center_x + random.randint(-50, 50), center_y + random.randint(-50, 50)] for city in cities}
         velocities = {city: [0.0, 0.0] for city in cities}
@@ -210,8 +218,8 @@ class AssetPopup(UILayer):
         max_dist = max([d for edges in map_data.values() for _, d in edges] + [1])
         SCALE = (min(area.width, area.height) * 0.6) / max_dist
 
-        ITERATIONS = 150
-        REPULSION = 5000.0
+        ITERATIONS = 200      # 진동이 멈출 때까지 조금 더 충분히 연산
+        REPULSION = 8000.0    # 척력을 키워서 노드(글씨)들이 절대 겹치지 않고 멀찌감치 떨어지게 강제함
         SPRING_K = 0.1
         DAMPING = 0.85
 
@@ -261,6 +269,9 @@ class AssetPopup(UILayer):
         offset_x = center_x - avg_x
         offset_y = center_y - avg_y
 
+        # 시드 고정을 해제하여 다른 랜덤 로직(매칭 큐 등)에 영향을 주지 않도록 복구
+        random.seed()
+
         final_coords = {}
         for city, p in positions.items():
             final_coords[city] = (int(area.x + p[0] + offset_x), int(area.y + p[1] + offset_y))
@@ -270,10 +281,11 @@ class AssetPopup(UILayer):
     def _draw_map_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
         map_data = scene.engine.map_graph.adjacency
         
-        if self.cached_layout is None:
-            self.cached_layout = self._compute_physics_layout(map_data, area)
+        # 영구 캐시에 데이터가 없으면 딱 한 번만 계산하여 저장
+        if "map" not in AssetPopup._layout_cache:
+            AssetPopup._layout_cache["map"] = self._compute_physics_layout(map_data, area)
             
-        pixel_coords = self.cached_layout
+        pixel_coords = AssetPopup._layout_cache["map"]
 
         drawn_edges = set()
         for city, edges in map_data.items():
@@ -301,6 +313,42 @@ class AssetPopup(UILayer):
             
             text_surf = ui.fonts["body"].render(city, True, INK)
             text_rect = text_surf.get_rect(center=(pos[0], pos[1] + 28))
+            ui.screen.blit(text_surf, text_rect)
+
+    # 인물 관계망 렌더러 (Circular Layout)
+    def _draw_rel_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
+        adj = scene.engine.relationships.adjacency
+        nodes = list(adj.keys())
+        if not nodes:
+            return
+
+        center_x, center_y = area.x + area.width // 2, area.y + area.height // 2
+        radius = min(area.width, area.height) // 2 - 40
+
+        # 사람들은 물리 엔진 대신 깔끔하게 원형(Circular)으로 배치
+        pixel_coords = {}
+        for i, node in enumerate(nodes):
+            angle = i * (2 * math.pi / len(nodes)) - (math.pi / 2)
+            pixel_coords[node] = (int(center_x + radius * math.cos(angle)), int(center_y + radius * math.sin(angle)))
+
+        # 방향성(Directed) 간선 그리기
+        for source, targets in adj.items():
+            p1 = pixel_coords[source]
+            for target in targets:
+                p2 = pixel_coords[target]
+                # 화살표 느낌이 나도록 출발지에서 목적지 쪽으로 점선이나 얇은 선 그리기
+                pygame.draw.line(ui.screen, WARN, p1, p2, 2)
+                # 화살표 머리 (간단히 중심에 가까운 쪽에 원을 하나 그려서 방향 표시)
+                head_x = p1[0] + (p2[0] - p1[0]) * 0.8
+                head_y = p1[1] + (p2[1] - p1[1]) * 0.8
+                pygame.draw.circle(ui.screen, WARN, (int(head_x), int(head_y)), 4)
+
+        for node, pos in pixel_coords.items():
+            pygame.draw.circle(ui.screen, CARD, pos, 20)
+            pygame.draw.circle(ui.screen, WARN, pos, 20, 2)
+            
+            text_surf = ui.fonts["small"].render(node, True, INK)
+            text_rect = text_surf.get_rect(center=pos)
             ui.screen.blit(text_surf, text_rect)
 
     def _draw_hobby_tree(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:

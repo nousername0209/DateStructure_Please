@@ -361,18 +361,18 @@ class PlayScene:
             self.engine.ui_stack.pop()
 
     def _update(self, dt: float) -> None:
-        # 1. 화면에 떠 있는 메시지가 있다면 타이머를 줄입니다.
+        # 1. 화면에 떠 있는 메시지가 있다면 일단 타이머를 줄입니다.
         if self.notice_timer > 0:
             self.notice_timer = max(0, self.notice_timer - dt)
             if self.notice_timer == 0:
-                self.notice_text = "" # 시간이 0이 되면 화면에서 텍스트를 지움
+                self.notice_text = "" 
 
-        # 2. 큐(Queue) 디스패처 로직: 화면이 비어있고 큐에 대기 중인 메시지가 있다면?
-        if self.notice_timer == 0 and len(self.message_queue) > 0:
-            # 큐의 맨 앞(가장 먼저 들어온) 메시지를 꺼내서(Dequeue) 텍스트에 넣음
+        # 2. UX(조작감) 개선 로직: 큐에 새 이벤트(메시지)가 들어왔다면 즉시 모조리 꺼냄
+        while len(self.message_queue) > 0:
+            # 큐에서 순서대로 빼내되, 가장 최신(마지막) 이벤트가 notice_text를 차지하게 됨
             self.notice_text = self.message_queue.popleft() 
-            self.notice_timer = 3.0 # 화면에 3초 동안 보여줌
-            
+            self.notice_timer = 3.0 # 타이머를 즉시 3초로 초기화 (기존 대기시간 무시)
+
     def _draw(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         analysis = self._analysis()
         screen.fill(BG)

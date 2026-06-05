@@ -76,7 +76,12 @@ class MatchmakingEngine:
         first = self.get_profile(first_id)   # 이진 탐색 호출
         second = self.get_profile(second_id) # 이진 탐색 호출
         forbidden = set(first.get("blacklist", [])) | set(second.get("blacklist", []))
+        # 일방통행 버그 수정. A의 시점과 B의 시점 모두에서 금지망을 탐색.
         forbidden_path = self.relationships.first_forbidden_path(first_id, second_id, forbidden)
+        if forbidden_path is None:
+            # A쪽에서 문제가 없었다면, 방향을 뒤집어서 B쪽에서도 검사함
+            forbidden_path = self.relationships.first_forbidden_path(second_id, first_id, forbidden)
+
         hobby_distance = self.hobbies.distance(first["hobby"], second["hobby"])
         travel_distance = self.map_graph.shortest_distance(first["city"], second["city"])
 

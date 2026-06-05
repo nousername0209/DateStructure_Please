@@ -33,7 +33,14 @@ class DialogueTree:
         if start_id not in nodes:
             raise KeyError(f"Unknown start dialogue node: {start_id}")
         self.nodes = nodes
+        # 루트 노드의 ID를 영구적으로 기억하도록 저장
+        self.start_id = start_id 
         self.current_id = start_id
+
+    # 언제든 대화를 처음으로 되돌릴 수 있는 메서드 추가
+    def reset_to_root(self) -> None:
+        """대화 포인터를 트리의 가장 처음(Root) 상태로 되돌립니다."""
+        self.current_id = self.start_id
 
     @property
     def current(self) -> DialogueNode:

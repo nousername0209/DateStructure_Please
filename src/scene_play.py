@@ -498,12 +498,20 @@ class PlayScene:
         self.pair_index = 0
         self.engine.reputation = 80  # 명성을 초기 점수(80점)로 복구
         random.shuffle(self.match_queue)  # 큐를 다시 섞어서 새로운 패턴 제공
+        # 메시지 큐 비우기
+        self.message_queue.clear() 
         self.notice_text = ""
         self.notice_timer = 0.0
+
+        # 대화 트리 상태 초기화
+        self.engine.dialogue.reset_to_root() 
+        # UI 대화 뒤로가기 기록도 완벽히 비워줌 (이거 안 비우면 뒤로가기 눌렀을 때 버그 남)
+        self.dialogue_history.clear()        
+        
         self.engine.ui_stack.clear()
         
-        # 선택 사항: 재시작 시 오프닝 대화창을 다시 띄우고 싶다면 아래 주석을 해제하세요
-        # self.engine.ui_stack.push(DialoguePopup())
+        # 대화창 띄우기
+        self.engine.ui_stack.push(DialoguePopup())
 
 def run_game(engine: MatchmakingEngine) -> None:
     PlayScene(engine).run()

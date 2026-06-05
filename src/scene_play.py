@@ -18,6 +18,7 @@ LINE = (210, 204, 194)
 ACCENT = (38, 116, 92)
 WARN = (178, 61, 48)
 BLUE = (48, 86, 150)
+GRAY = (214, 214, 214)
 
 
 @dataclass(frozen=True)
@@ -332,6 +333,7 @@ class PlayScene:
 
         ui.text("title", "DateStructure, Please", (40, 30), INK)
         ui.text("body", "Moderator review desk", (44, 72), MUTED)
+        self._draw_reputation(ui)
         self._draw_profile_card(ui, analysis.first, pygame.Rect(46, 128, 350, 250))
         self._draw_profile_card(ui, analysis.second, pygame.Rect(564, 128, 350, 250))
         self._draw_asset_buttons(ui)
@@ -345,6 +347,12 @@ class PlayScene:
             layer.draw(self, ui, depth)
 
         self.buttons = ui.buttons
+
+    def _draw_reputation(self, ui: UIContext) -> None:
+        box = pygame.Rect(724, 26, 190, 52)
+        pygame.draw.rect(ui.screen, GRAY, box, border_radius=8)
+        pygame.draw.rect(ui.screen, LINE, box, 2, border_radius=8)
+        ui.text("body", f"Reputation: {self.engine.reputation}", (box.x + 18, box.y + 15), INK)
 
     def _draw_profile_card(
         self,

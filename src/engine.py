@@ -46,6 +46,7 @@ class MatchmakingEngine:
         self.dialogue = dialogue
         self.ui_stack = UIStack[object]()
         self.event_queue = EventQueue[str]()
+        self.reputation = 80
 
     def analyze_pair(
         self,

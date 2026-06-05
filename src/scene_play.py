@@ -219,7 +219,7 @@ class AssetPopup(UILayer):
 
 
 class PlayScene:
-    """Pygame play loop for pair review and contradiction inspection."""
+    """Pygame play loop for pair review and contradiction rejection."""
 
     def __init__(self, engine: MatchmakingEngine) -> None:
         self.engine = engine
@@ -289,8 +289,8 @@ class PlayScene:
 
         for button in self.buttons:
             if button.contains(pos):
-                if button.action == "inspect":
-                    self._inspect_pair()
+                if button.action == "reject":
+                    self._reject_pair()
                 elif button.action == "next":
                     self.pair_index = (self.pair_index + 1) % len(self.profiles)
                     self.notice_text = ""
@@ -311,8 +311,8 @@ class PlayScene:
             return top_layer.on_escape(self)
         return False
 
-    def _inspect_pair(self) -> None:
-        # INSPECT behavior intentionally removed — implement later.
+    def _reject_pair(self) -> None:
+        # REJECT behavior to be implemented later.
         pass
 
     def close_top_layer(self) -> None:
@@ -376,7 +376,7 @@ class PlayScene:
         ui.text("heading", "그래프 보기", (panel.x + 24, panel.y + 18), INK)
 
     def _draw_actions(self, ui: UIContext) -> None:
-        ui.button(pygame.Rect(46, 514, 170, 52), "INSPECT", "inspect", WARN)
+        ui.button(pygame.Rect(46, 514, 170, 52), "REJECT", "reject", WARN)
         ui.button(pygame.Rect(744, 514, 170, 52), "NEXT PAIR", "next", ACCENT)
         
         # Asset buttons (그래프 보기 패널 내)

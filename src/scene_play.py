@@ -236,6 +236,7 @@ class PlayScene:
         # ------------------------
         
         self.pair_index = 0
+        self.game_state = "playing" # 이 줄을 추가 ("playing", "game_over", "clear" 상태를 가질 예정) -호준
         self.buttons: list[Button] = []
         self.notice_text = ""
         self.notice_timer = 0.0
@@ -313,8 +314,11 @@ class PlayScene:
                         reason_str = " / ".join(result.reasons)
                         self.notice_text = f"오심! 부적합 매칭 승인. 사유: {reason_str}"
                         
-                    self.pair_index = (self.pair_index + 1) % len(self.profiles)
+                    # 수정됨: % 연산 제거 및 상태 검사 추가 - 호준
+                    self.pair_index += 1
                     self.notice_timer = 3.0
+                    self._update_game_state()
+
                 elif button.action == "tree":
                     self.engine.ui_stack.push(AssetPopup("tree"))
                     self.notice_text = ""
@@ -342,8 +346,10 @@ class PlayScene:
             self.engine.reputation = max(0, self.engine.reputation - 10)
             self.notice_text = f"오심입니다! 적합한 매칭을 거절했습니다. (점수: {result.score}점)"
 
-        self.pair_index = (self.pair_index + 1) % len(self.profiles)
+        # 수정: % len(self.match_queue) 를 빼버려서 무한루프를 막기 - 호준
+        self.pair_index += 1 
         self.notice_timer = 3.0
+        self._update_game_state() # 매 판정이 끝날 때마다 상태 검사
 
     def close_top_layer(self) -> None:
         if isinstance(self.engine.ui_stack.peek(), UILayer):
@@ -376,6 +382,12 @@ class PlayScene:
             layer.draw(self, ui, depth)
 
         self.buttons = ui.buttons
+
+        # 이 부분을 추가함 - 호준
+        if self.game_state != "playing":
+            self._draw_end_screen(ui)
+            # 버튼 클릭이 더 이상 먹히지 않도록 버튼 리스트를 비워버림
+            self.buttons = []
 
     def _draw_reputation(self, ui: UIContext) -> None:
         box = pygame.Rect(724, 26, 190, 52)
@@ -431,7 +443,31 @@ class PlayScene:
         
         if self.notice_text:
             ui.text("small", self.notice_text, (46, 588), WARN)
+    # 추가함 - 호준
+    def _update_game_state(self) -> None:
+        """명성이나 큐 상태를 확인하여 게임 오버 또는 클리어 상태로 전환"""
+        if self.engine.reputation <= 0:
+            self.game_state = "game_over"
+        elif self.pair_index >= len(self.match_queue):
+            self.game_state = "clear"
 
+    def _draw_end_screen(self, ui: UIContext) -> None:
+        """게임 오버 또는 클리어 시 화면을 덮는 팝업을 그림"""
+        ui.scrim() # 배경을 어둡게 처리
+        panel = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - 100, 400, 200)
+        
+        if self.game_state == "game_over":
+            ui.popup_frame(panel, "GAME OVER", WARN, 0)
+            ui.text("heading", "해고되었습니다.", (panel.x + 130, panel.y + 70), WARN)
+            ui.text("body", "명성이 바닥나 심사관 자격을 박탈당했습니다.", (panel.x + 30, panel.y + 110), INK)
+        elif self.game_state == "clear":
+            ui.popup_frame(panel, "STAGE CLEAR", ACCENT, 0)
+            ui.text("heading", "오늘의 업무 종료", (panel.x + 115, panel.y + 70), ACCENT)
+            ui.text("body", f"성공적으로 업무를 마쳤습니다! (남은 명성: {self.engine.reputation})", (panel.x + 35, panel.y + 110), INK)
+        
+        ui.text("small", "ESC를 눌러 게임을 종료하세요.", (panel.x + 95, panel.bottom - 40), MUTED)
+
+    
     def go_back_dialogue(self) -> None:
         if not self.dialogue_history:
             return

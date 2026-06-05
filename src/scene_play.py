@@ -3,6 +3,8 @@ import math
 from pathlib import Path
 
 import pygame
+import itertools
+import random
 
 from src.engine import MatchAnalysis, MatchmakingEngine
 
@@ -225,6 +227,14 @@ class PlayScene:
     def __init__(self, engine: MatchmakingEngine) -> None:
         self.engine = engine
         self.profiles = self.engine.priority_profiles()
+
+        # --- 핵심 추가 로직 --- 임호준
+        # 1. profiles에 있는 모든 사람들의 가능한 모든 2명 짝(조합)을 리스트로 만듦
+        self.match_queue = list(itertools.combinations(self.profiles, 2))
+        # 2. 플레이할 때마다 매칭 순서가 달라지도록 섞음 (난수화)
+        random.shuffle(self.match_queue)
+        # ------------------------
+        
         self.pair_index = 0
         self.buttons: list[Button] = []
         self.notice_text = ""
@@ -271,9 +281,9 @@ class PlayScene:
         pygame.quit()
 
     def _current_pair(self) -> tuple[dict, dict]:
-        first = self.profiles[self.pair_index % len(self.profiles)]
-        second = self.profiles[(self.pair_index + 2) % len(self.profiles)]
-        return first, second
+        # 기존의 i, i+2 억지 공식을 버리고, 우리가 만든 매칭 대기열(queue)에서 순서대로 꺼내오기 - by 호준
+        pair = self.match_queue[self.pair_index % len(self.match_queue)]
+        return pair[0], pair[1]
 
     def _analysis(self) -> MatchAnalysis:
         first, second = self._current_pair()

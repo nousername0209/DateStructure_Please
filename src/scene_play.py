@@ -218,45 +218,6 @@ class AssetPopup(UILayer):
         return True
 
 
-class InspectPopup(UILayer):
-    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
-        analysis = scene.analysis()
-        rect = pygame.Rect(214 + depth * 34, 142 + depth * 24, 500, 286)
-        ui.popup_frame(rect, "INSPECT MODE", WARN, depth)
-        if analysis.forbidden_path is None:
-            body = "No forbidden relationship path detected."
-        else:
-            body = f"Forbidden path: {' -> '.join(analysis.forbidden_path)}"
-        ui.text("body", body, (rect.x + 28, rect.y + 96), INK)
-        ui.text("small", "RelationshipGraph BFS result", (rect.x + 28, rect.y + 134), MUTED)
-        ui.button(pygame.Rect(rect.right - 160, rect.bottom - 68, 132, 44), "CLOSE", "close_inspect", WARN)
-
-    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
-        for button in scene.buttons:
-            if button.contains(pos) and button.action == "close_inspect":
-                scene.close_top_layer()
-                return True
-        return True
-
-
-class WarningPopup(UILayer):
-    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
-        analysis = scene.analysis()
-        rect = pygame.Rect(356 + depth * 30, 210 + depth * 18, 372, 216)
-        ui.popup_frame(rect, "WARNING NOTICE", WARN, depth, fill=(255, 249, 235))
-        ui.text("body", "Contradiction detected.", (rect.x + 30, rect.y + 88), INK)
-        path = analysis.forbidden_path or []
-        ui.text("small", " -> ".join(path), (rect.x + 30, rect.y + 122), MUTED)
-        ui.button(pygame.Rect(rect.right - 138, rect.bottom - 62, 110, 42), "OK", "close_warning", WARN)
-
-    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
-        for button in scene.buttons:
-            if button.contains(pos) and button.action == "close_warning":
-                scene.close_top_layer()
-                return True
-        return True
-
-
 class PlayScene:
     """Pygame play loop for pair review and contradiction inspection."""
 
@@ -267,7 +228,6 @@ class PlayScene:
         self.buttons: list[Button] = []
         self.notice_text = ""
         self.notice_timer = 0.0
-        self.warning_timer = 0.0
         self.dialogue_history: list[str] = []
         self.tree_image: pygame.Surface | None = None
         self.graph_rel_image: pygame.Surface | None = None
@@ -352,16 +312,8 @@ class PlayScene:
         return False
 
     def _inspect_pair(self) -> None:
-        analysis = self._analysis()
-        self.engine.ui_stack.push(InspectPopup())
-        if analysis.forbidden_path is None:
-            self.notice_text = "INSPECT: 금지 관계 경로가 발견되지 않았습니다."
-            self.notice_timer = 2.5
-            return
-
-        self.notice_text = f"INSPECT 성공: {' -> '.join(analysis.forbidden_path)}"
-        self.notice_timer = 3.5
-        self.engine.event_queue.enqueue("warning_print")
+        # INSPECT behavior intentionally removed — implement later.
+        pass
 
     def close_top_layer(self) -> None:
         if isinstance(self.engine.ui_stack.peek(), UILayer):
@@ -372,17 +324,6 @@ class PlayScene:
             self.notice_timer = max(0, self.notice_timer - dt)
             if self.notice_timer == 0:
                 self.notice_text = ""
-
-        if self.warning_timer > 0:
-            self.warning_timer = max(0, self.warning_timer - dt)
-            if self.warning_timer == 0 and isinstance(self.engine.ui_stack.peek(), WarningPopup):
-                self.engine.ui_stack.pop()
-
-        if self.warning_timer == 0 and not self.engine.event_queue.is_empty():
-            event_name = self.engine.event_queue.dequeue()
-            if event_name == "warning_print":
-                self.warning_timer = 2.8
-                self.engine.ui_stack.push(WarningPopup())
 
     def _draw(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         analysis = self._analysis()
@@ -440,8 +381,8 @@ class PlayScene:
         
         # Asset buttons (그래프 보기 패널 내)
         panel = pygame.Rect(278, 410, 404, 150)
-        button_width = 120
-        button_height = 90
+        button_width = 110
+        button_height = 80
         button_y = panel.y + 54
         spacing = 12
         start_x = panel.x + 24

@@ -208,7 +208,6 @@ class AssetPopup(UILayer):
         if not cities: return {}
 
         # 난수 생성기의 시드(Seed)를 42로 고정
-        # 이제 (우주가 멸망해도) 물리 엔진은 항상 똑같은(가로로 넓게 퍼진) 최적의 위상을 도출함
         random.seed(42)
 
         center_x, center_y = area.width / 2, area.height / 2
@@ -219,7 +218,7 @@ class AssetPopup(UILayer):
         SCALE = (min(area.width, area.height) * 0.8) / max_dist
 
         ITERATIONS = 200      # 진동이 멈출 때까지 조금 더 충분히 연산
-        REPULSION = 20000.0    # 척력을 키워서 노드(글씨)들이 절대 겹치지 않고 멀찌감치 떨어지게 강제함
+        REPULSION = 20000.0   # 척력을 키워서 노드들이 절대 겹치지 않게 강제함
         SPRING_K = 0.1
         DAMPING = 0.85
 
@@ -264,17 +263,35 @@ class AssetPopup(UILayer):
                 positions[city][0] += velocities[city][0]
                 positions[city][1] += velocities[city][1]
 
-        avg_x = sum(p[0] for p in positions.values()) / len(cities)
-        avg_y = sum(p[1] for p in positions.values()) / len(cities)
-        offset_x = center_x - avg_x
-        offset_y = center_y - avg_y
-
         # 시드 고정을 해제하여 다른 랜덤 로직(매칭 큐 등)에 영향을 주지 않도록 복구
         random.seed()
 
+        # 여기서부터 도화지(화면)를 가로세로 꽉 채우도록 좌표를 변환함
+        min_x = min(p[0] for p in positions.values())
+        max_x = max(p[0] for p in positions.values())
+        min_y = min(p[1] for p in positions.values())
+        max_y = max(p[1] for p in positions.values())
+
+        layout_w = max_x - min_x or 1
+        layout_h = max_y - min_y or 1
+
+        # 화면 가장자리에서 글자가 잘리지 않도록 넉넉한 패딩(60px) 확보
+        pad = 60
+        avail_w = area.width - pad * 2
+        avail_h = area.height - pad * 2
+
+        center_x = area.x + area.width / 2
+        center_y = area.y + area.height / 2
+
         final_coords = {}
         for city, p in positions.items():
-            final_coords[city] = (int(area.x + p[0] + offset_x), int(area.y + p[1] + offset_y))
+            # X축과 Y축을 독립적으로(비등방성) 화면 넓이 비율에 맞게 곱해버림
+            nx = (p[0] - min_x) / layout_w - 0.5
+            ny = (p[1] - min_y) / layout_h - 0.5
+            final_coords[city] = (
+                int(center_x + nx * avail_w),
+                int(center_y + ny * avail_h)
+            )
             
         return final_coords
 
@@ -361,17 +378,44 @@ class AssetPopup(UILayer):
             for target in targets:
                 p2 = pixel_coords[target]
                 
-                # 캐시에서 관계 타입을 꺼내어 색상 결정
                 rel_type = AssetPopup._layout_cache["rel_types"].get((source, target), "default")
                 rel_color = color_map.get(rel_type, color_map["default"])
                 
-                pygame.draw.line(ui.screen, rel_color, p1, p2, 2)
+                dx = p2[0] - p1[0]
+                dy = p2[1] - p1[1]
+                dist = math.hypot(dx, dy)
                 
-                # 3. 화살표(점)의 크기를 키우고 눈에 확 띄게 하얀 테두리를 두름
-                head_x = p1[0] + (p2[0] - p1[0]) * 0.8
-                head_y = p1[1] + (p2[1] - p1[1]) * 0.8
-                pygame.draw.circle(ui.screen, rel_color, (int(head_x), int(head_y)), 7)
-                pygame.draw.circle(ui.screen, CARD, (int(head_x), int(head_y)), 7, 2)
+                if dist > 0:
+                    pygame.draw.line(ui.screen, rel_color, p1, p2, 2)
+                    
+                    # 도착지 노드 반지름(20) 바깥에서 화살표 시작
+                    offset = 22 
+                    if dist > offset:
+                        ux, uy = dx / dist, dy / dist # 단위 방향 벡터
+                        
+                        # 화살표 끝점 (노드 테두리에 딱 닿는 지점)
+                        tip_x = p2[0] - ux * offset
+                        tip_y = p2[1] - uy * offset
+                        
+                        # 화살표 크기 디자인 파라미터
+                        arrow_len = 14
+                        arrow_half_width = 7
+                        
+                        # 화살표 밑변의 중심점
+                        base_x = tip_x - ux * arrow_len
+                        base_y = tip_y - uy * arrow_len
+                        
+                        # 회전 변환 행렬 적용 (직교 벡터)
+                        nx, ny = -uy, ux
+                        
+                        # 삼각형 양 날개 좌표 도출
+                        left_x = base_x + nx * arrow_half_width
+                        left_y = base_y + ny * arrow_half_width
+                        right_x = base_x - nx * arrow_half_width
+                        right_y = base_y - ny * arrow_half_width
+                        
+                        # 파이게임 다각형(Polygon) 렌더러로 완벽한 삼각형 그리기
+                        pygame.draw.polygon(ui.screen, rel_color, [(tip_x, tip_y), (left_x, left_y), (right_x, right_y)])
 
         # 노드(사람) 그리기
         for node, pos in pixel_coords.items():

@@ -293,8 +293,18 @@ class PlayScene:
                 if button.action == "reject":
                     self._reject_pair()
                 elif button.action == "next":
+                    first, second = self._current_pair()
+                    result = self.engine.evaluate_match(first["id"], second["id"])
+                    
+                    if result.accepted:
+                        self.notice_text = f"승인 성공! 매칭 점수: {result.score}점"
+                    else:
+                        self.engine.reputation = max(0, self.engine.reputation - 10)
+                        reason_str = " / ".join(result.reasons)
+                        self.notice_text = f"오심! 부적합 매칭 승인. 사유: {reason_str}"
+                        
                     self.pair_index = (self.pair_index + 1) % len(self.profiles)
-                    self.notice_text = ""
+                    self.notice_timer = 3.0
                 elif button.action == "tree":
                     self.engine.ui_stack.push(AssetPopup("tree"))
                     self.notice_text = ""
@@ -313,8 +323,17 @@ class PlayScene:
         return False
 
     def _reject_pair(self) -> None:
-        # REJECT behavior to be implemented later.
-        pass
+        first, second = self._current_pair()
+        result = self.engine.evaluate_match(first["id"], second["id"])
+        
+        if not result.accepted:
+            self.notice_text = f"정확한 판단입니다! 사유: {result.reasons[0]}"
+        else:
+            self.engine.reputation = max(0, self.engine.reputation - 10)
+            self.notice_text = f"오심입니다! 적합한 매칭을 거절했습니다. (점수: {result.score}점)"
+
+        self.pair_index = (self.pair_index + 1) % len(self.profiles)
+        self.notice_timer = 3.0
 
     def close_top_layer(self) -> None:
         if isinstance(self.engine.ui_stack.peek(), UILayer):

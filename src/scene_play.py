@@ -216,10 +216,10 @@ class AssetPopup(UILayer):
         velocities = {city: [0.0, 0.0] for city in cities}
 
         max_dist = max([d for edges in map_data.values() for _, d in edges] + [1])
-        SCALE = (min(area.width, area.height) * 0.6) / max_dist
+        SCALE = (min(area.width, area.height) * 0.8) / max_dist
 
         ITERATIONS = 200      # 진동이 멈출 때까지 조금 더 충분히 연산
-        REPULSION = 8000.0    # 척력을 키워서 노드(글씨)들이 절대 겹치지 않고 멀찌감치 떨어지게 강제함
+        REPULSION = 20000.0    # 척력을 키워서 노드(글씨)들이 절대 겹치지 않고 멀찌감치 떨어지게 강제함
         SPRING_K = 0.1
         DAMPING = 0.85
 
@@ -313,6 +313,8 @@ class AssetPopup(UILayer):
             
             text_surf = ui.fonts["body"].render(city, True, INK)
             text_rect = text_surf.get_rect(center=(pos[0], pos[1] + 28))
+            bg_rect = text_rect.inflate(8, 4)
+            pygame.draw.rect(ui.screen, CARD, bg_rect, border_radius=4)
             ui.screen.blit(text_surf, text_rect)
 
     # 인물 관계망 렌더러 (Circular Layout)
@@ -322,34 +324,87 @@ class AssetPopup(UILayer):
         if not nodes:
             return
 
-        center_x, center_y = area.x + area.width // 2, area.y + area.height // 2
-        radius = min(area.width, area.height) // 2 - 40
+        # JSON에서 관계 타입(Type)을 읽어와 영구 캐싱
+        if "rel_types" not in AssetPopup._layout_cache:
+            AssetPopup._layout_cache["rel_types"] = {}
+            try:
+                import json
+                with open(scene.asset_dir / "profiles.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    for r in data.get("relationships", []):
+                        AssetPopup._layout_cache["rel_types"][(r["from"], r["to"])] = r["type"]
+            except Exception:
+                pass # 파일 로드 실패 시 무시 (기본 색상 적용)
 
-        # 사람들은 물리 엔진 대신 깔끔하게 원형(Circular)으로 배치
+        # 2. 색상 팔레트
+        color_map = {
+            "ex_partner": WARN,              # 치정/전연인 (빨강)
+            "scam_partner": BLUE,            # 사기 (파랑)
+            "best_friend": ACCENT,           # 절친 (초록)
+            "default": MUTED                 # 기타 (회색)
+        }
+
+        center_x, center_y = area.x + area.width // 2, area.y + area.height // 2
+        # 범례가 들어갈 공간을 위해 원형 반지름을 살짝 줄이고 위로 살짝 올림
+        radius = min(area.width, area.height) // 2 - 50
+        center_y -= 10 
+
+        # 노드 원형 배치
         pixel_coords = {}
         for i, node in enumerate(nodes):
             angle = i * (2 * math.pi / len(nodes)) - (math.pi / 2)
             pixel_coords[node] = (int(center_x + radius * math.cos(angle)), int(center_y + radius * math.sin(angle)))
 
-        # 방향성(Directed) 간선 그리기
+        # 간선 및 화살표 그리기
         for source, targets in adj.items():
             p1 = pixel_coords[source]
             for target in targets:
                 p2 = pixel_coords[target]
-                # 화살표 느낌이 나도록 출발지에서 목적지 쪽으로 점선이나 얇은 선 그리기
-                pygame.draw.line(ui.screen, WARN, p1, p2, 2)
-                # 화살표 머리 (간단히 중심에 가까운 쪽에 원을 하나 그려서 방향 표시)
+                
+                # 캐시에서 관계 타입을 꺼내어 색상 결정
+                rel_type = AssetPopup._layout_cache["rel_types"].get((source, target), "default")
+                rel_color = color_map.get(rel_type, color_map["default"])
+                
+                pygame.draw.line(ui.screen, rel_color, p1, p2, 2)
+                
+                # 3. 화살표(점)의 크기를 키우고 눈에 확 띄게 하얀 테두리를 두름
                 head_x = p1[0] + (p2[0] - p1[0]) * 0.8
                 head_y = p1[1] + (p2[1] - p1[1]) * 0.8
-                pygame.draw.circle(ui.screen, WARN, (int(head_x), int(head_y)), 4)
+                pygame.draw.circle(ui.screen, rel_color, (int(head_x), int(head_y)), 7)
+                pygame.draw.circle(ui.screen, CARD, (int(head_x), int(head_y)), 7, 2)
 
+        # 노드(사람) 그리기
         for node, pos in pixel_coords.items():
             pygame.draw.circle(ui.screen, CARD, pos, 20)
-            pygame.draw.circle(ui.screen, WARN, pos, 20, 2)
+            pygame.draw.circle(ui.screen, INK, pos, 20, 2) # 사람 테두리는 일관되게 진회색 유지
             
             text_surf = ui.fonts["small"].render(node, True, INK)
             text_rect = text_surf.get_rect(center=pos)
             ui.screen.blit(text_surf, text_rect)
+
+        # 4. 화면 좌측 하단에 친절한 범례(Legend) UI 추가
+        legend_x = area.x + 10
+        legend_y = area.bottom - 110
+        
+        ui.text("body", "[ 관계망 범례 ]", (legend_x, legend_y), INK)
+        legend_y += 25
+        
+        legend_items = [
+            ("ex bf/gf (치정)", WARN), 
+            ("scam (사기)", BLUE), 
+            ("best friend (절친)", ACCENT)
+        ]
+        
+        for label, color in legend_items:
+            # 범례 아이콘 (선과 점)
+            pygame.draw.line(ui.screen, color, (legend_x, legend_y + 8), (legend_x + 20, legend_y + 8), 3)
+            pygame.draw.circle(ui.screen, color, (legend_x + 15, legend_y + 8), 5)
+            
+            # 범례 텍스트
+            ui.text("small", label, (legend_x + 30, legend_y), INK)
+            legend_y += 20
+            
+        ui.text("small", "* 선 끝의 둥근 점은 관계가 향하는 대상을 의미합니다.", (legend_x, legend_y + 5), MUTED)
 
     def _draw_hobby_tree(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
         root = scene.engine.hobbies.root

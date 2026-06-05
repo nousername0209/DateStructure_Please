@@ -5,6 +5,7 @@ from pathlib import Path
 import pygame
 import itertools
 import random
+from collections import deque  # 프로젝트의 EventQueue를 못 찾을 경우를 대비한 가장 안전하고 엄밀한 내장 큐
 
 from src.engine import MatchAnalysis, MatchmakingEngine
 
@@ -237,6 +238,8 @@ class PlayScene:
         
         self.pair_index = 0
         self.game_state = "playing" # 이 줄을 추가 ("playing", "game_over", "clear" 상태를 가질 예정) -호준
+        # 기획서 요건을 충족하는 UI 이벤트 큐(Queue) 파이프라인 생성
+        self.message_queue = deque()
         self.buttons: list[Button] = []
         self.notice_text = ""
         self.notice_timer = 0.0
@@ -310,15 +313,15 @@ class PlayScene:
                     result = self.engine.evaluate_match(first["id"], second["id"])
                     
                     if result.accepted:
-                        self.notice_text = f"승인 성공! 매칭 점수: {result.score}점"
+                        self.message_queue.append(f"승인 성공! 매칭 점수: {result.score}점")
                     else:
                         self.engine.reputation = max(0, self.engine.reputation - 10)
                         reason_str = " / ".join(result.reasons)
-                        self.notice_text = f"오심! 부적합 매칭 승인. 사유: {reason_str}"
-                        
+                        self.message_queue.append(f"오심! 부적합 매칭 승인. 사유: {reason_str}")
+
                     # 수정됨: % 연산 제거 및 상태 검사 추가 - 호준
                     self.pair_index += 1
-                    self.notice_timer = 3.0
+                    #self.notice_timer = 3.0
                     self._update_game_state()
 
                 elif button.action == "tree":
@@ -343,14 +346,14 @@ class PlayScene:
         result = self.engine.evaluate_match(first["id"], second["id"])
         
         if not result.accepted:
-            self.notice_text = f"정확한 판단입니다! 사유: {result.reasons[0]}"
+            self.message_queue.append(f"정확한 판단입니다! 사유: {result.reasons[0]}") # Enqueue
         else:
             self.engine.reputation = max(0, self.engine.reputation - 10)
-            self.notice_text = f"오심입니다! 적합한 매칭을 거절했습니다. (점수: {result.score}점)"
+            self.message_queue.append(f"오심입니다! 적합한 매칭을 거절했습니다. (점수: {result.score}점)") # Enqueue
 
         # 수정: % len(self.match_queue) 를 빼버려서 무한루프를 막기 - 호준
         self.pair_index += 1 
-        self.notice_timer = 3.0
+        #self.notice_timer = 3.0
         self._update_game_state() # 매 판정이 끝날 때마다 상태 검사
 
     def close_top_layer(self) -> None:
@@ -358,11 +361,18 @@ class PlayScene:
             self.engine.ui_stack.pop()
 
     def _update(self, dt: float) -> None:
+        # 1. 화면에 떠 있는 메시지가 있다면 타이머를 줄입니다.
         if self.notice_timer > 0:
             self.notice_timer = max(0, self.notice_timer - dt)
             if self.notice_timer == 0:
-                self.notice_text = ""
+                self.notice_text = "" # 시간이 0이 되면 화면에서 텍스트를 지움
 
+        # 2. 큐(Queue) 디스패처 로직: 화면이 비어있고 큐에 대기 중인 메시지가 있다면?
+        if self.notice_timer == 0 and len(self.message_queue) > 0:
+            # 큐의 맨 앞(가장 먼저 들어온) 메시지를 꺼내서(Dequeue) 텍스트에 넣음
+            self.notice_text = self.message_queue.popleft() 
+            self.notice_timer = 3.0 # 화면에 3초 동안 보여줌
+            
     def _draw(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         analysis = self._analysis()
         screen.fill(BG)

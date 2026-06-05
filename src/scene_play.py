@@ -173,7 +173,7 @@ class DialoguePopup(UILayer):
 
 
 class AssetPopup(UILayer):
-   def __init__(self, kind: str) -> None:
+    def __init__(self, kind: str) -> None:
         self.kind = kind
         # 물리 시뮬레이션 결과를 캐싱해둘 변수 (매 프레임 연산 방지)
         self.cached_layout: dict[str, tuple[int, int]] | None = None

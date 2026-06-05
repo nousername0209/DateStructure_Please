@@ -274,11 +274,11 @@ class PlayScene:
         self.tree_image = pygame.image.load(str(self.asset_dir / "tree.png")).convert_alpha()
         self.graph_image = pygame.image.load(str(self.asset_dir / "graph.png")).convert_alpha()
         fonts = {
-            "title": pygame.font.SysFont("malgungothic", 34),
-            "heading": pygame.font.SysFont("malgungothic", 24),
-            "body": pygame.font.SysFont("malgungothic", 18),
-            "small": pygame.font.SysFont("malgungothic", 15),
-            "popup_title": pygame.font.SysFont("malgungothic", 20),
+            "title": pygame.font.SysFont(["malgungothic", 'applegothic'], 34),
+            "heading": pygame.font.SysFont(["malgungothic", 'applegothic'], 24),
+            "body": pygame.font.SysFont(["malgungothic",'applegothic'], 18),
+            "small": pygame.font.SysFont(["malgungothic",'applegothic'], 15),
+            "popup_title": pygame.font.SysFont(["malgungothic",'applegothic'], 20),
         }
 
         running = True

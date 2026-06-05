@@ -47,6 +47,54 @@
       "suspicion": 86,
       "joined_at": "2026-05-22T21:10:00",
       "blacklist": []
+    }, 
+    {
+      "id": "u005",
+      "name": "Sujin",
+      "city": "Gangneung",
+      "hobby": "running",
+      "tier": "silver",
+      "tier_priority": 2,
+      "success_rate": 0.68,
+      "suspicion": 15,
+      "joined_at": "2026-05-25T10:15:00",
+      "blacklist": []
+    },
+    {
+      "id": "u006",
+      "name": "Leo",
+      "city": "Seoul",
+      "hobby": "basketball",
+      "tier": "gold",
+      "tier_priority": 3,
+      "success_rate": 0.88,
+      "suspicion": 5,
+      "joined_at": "2026-05-28T14:40:00",
+      "blacklist": ["u007"]
+    },
+    {
+      "id": "u007",
+      "name": "Yuna",
+      "city": "Busan",
+      "hobby": "painting",
+      "tier": "basic",
+      "tier_priority": 1,
+      "success_rate": 0.45,
+      "suspicion": 42,
+      "joined_at": "2026-06-01T11:05:00",
+      "blacklist": []
+    },
+    {
+      "id": "u008",
+      "name": "Ian",
+      "city": "Jeju",
+      "hobby": "running",
+      "tier": "silver",
+      "tier_priority": 2,
+      "success_rate": 0.59,
+      "suspicion": 95,
+      "joined_at": "2026-06-03T16:22:00",
+      "blacklist": []
     }
   ],
   "relationships": [
@@ -63,6 +111,16 @@
     {
       "from": "u004",
       "to": "u003",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u005",
+      "to": "u007",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u006",
+      "to": "u008",
       "type": "scam_partner"
     }
   ]

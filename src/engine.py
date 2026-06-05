@@ -10,7 +10,7 @@ from src.utils.data_loader import (
     DialogueTree,
     load_game_data,
 )
-from src.utils.sorter import merge_sort
+from src.utils.sorter import merge_sort, binary_search_by_id
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,12 @@ class MatchmakingEngine:
         map_graph: MapGraph,
         dialogue: DialogueTree,
     ) -> None:
-        self.profiles = {profile["id"]: profile for profile in profiles}
+        # 기존 딕셔너리 방식 삭제 (이진 탐색을 안 쓰게 만드는 주범)
+        # self.profiles = {profile["id"]: profile for profile in profiles}
+        
+        # 우리가 만든 merge_sort로 'ID 오름차순 리스트(Primary Index)' 구축
+        self.profiles_by_id = merge_sort(profiles, key=lambda p: p["id"], reverse=False)
+        
         self.relationships = relationships
         self.hobbies = hobbies
         self.map_graph = map_graph
@@ -47,6 +52,13 @@ class MatchmakingEngine:
         self.ui_stack = UIStack[object]()
         self.event_queue = EventQueue[str]()
         self.reputation = 80
+
+    def get_profile(self, profile_id: str) -> dict:
+        """딕셔너리 대신 직접 구현한 이진 탐색(Binary Search)을 사용하여 프로필을 찾습니다."""
+        profile = binary_search_by_id(self.profiles_by_id, profile_id)
+        if profile is None:
+            raise ValueError(f"Profile {profile_id} not found!")
+        return profile
 
     def analyze_pair(
         self,
@@ -56,8 +68,8 @@ class MatchmakingEngine:
         long_distance_limit: float = 8,
         hobby_distance_limit: int = 4,
     ) -> MatchAnalysis:
-        first = self.profiles[first_id]
-        second = self.profiles[second_id]
+        first = self.get_profile(first_id)   # 이진 탐색 호출
+        second = self.get_profile(second_id) # 이진 탐색 호출
         forbidden = set(first.get("blacklist", [])) | set(second.get("blacklist", []))
         forbidden_path = self.relationships.first_forbidden_path(first_id, second_id, forbidden)
         hobby_distance = self.hobbies.distance(first["hobby"], second["hobby"])
@@ -89,8 +101,8 @@ class MatchmakingEngine:
         long_distance_limit: float = 8,
         hobby_distance_limit: int = 4,
     ) -> MatchResult:
-        first = self.profiles[first_id]
-        second = self.profiles[second_id]
+        first = self.get_profile(first_id)   # 이진 탐색 호출
+        second = self.get_profile(second_id) # 이진 탐색 호출
         reasons = []
         analysis = self.analyze_pair(
             first_id,
@@ -122,7 +134,7 @@ class MatchmakingEngine:
 
     def priority_profiles(self) -> list[dict]:
         return merge_sort(
-            list(self.profiles.values()),
+            self.profiles_by_id, # ID로 정렬된 원본 리스트를 가져와서 다시 정렬
             key=lambda profile: (profile["tier_priority"], profile["success_rate"]),
             reverse=True,
         )

@@ -25,6 +25,227 @@ class Button:
     rect: pygame.Rect
     label: str
     action: str
+    color: tuple[int, int, int]
+
+    def contains(self, pos: tuple[int, int]) -> bool:
+        return self.rect.collidepoint(pos)
+
+    def draw(self, screen: pygame.Surface, font: pygame.font.Font) -> None:
+        pygame.draw.rect(screen, self.color, self.rect, border_radius=8)
+        label = font.render(self.label, True, (255, 255, 255))
+        screen.blit(label, label.get_rect(center=self.rect.center))
+
+
+class UIContext:
+    """Small object-oriented drawing surface for scene UI widgets."""
+
+    def __init__(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        self.screen = screen
+        self.fonts = fonts
+        self.buttons: list[Button] = []
+
+    def text(
+        self,
+        font_name: str,
+        text: str,
+        pos: tuple[int, int],
+        color: tuple[int, int, int],
+    ) -> None:
+        self.screen.blit(self.fonts[font_name].render(text, True, color), pos)
+
+    def button(
+        self,
+        rect: pygame.Rect,
+        label: str,
+        action: str,
+        color: tuple[int, int, int],
+    ) -> Button:
+        button = Button(rect, label, action, color)
+        button.draw(self.screen, self.fonts["body"])
+        self.buttons.append(button)
+        return button
+
+    def scrim(self) -> None:
+        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay.fill((20, 20, 20, 120))
+        self.screen.blit(overlay, (0, 0))
+
+    def popup_frame(
+        self,
+        rect: pygame.Rect,
+        title: str,
+        color: tuple[int, int, int],
+        depth: int,
+        *,
+        fill: tuple[int, int, int] = CARD,
+    ) -> None:
+        shadow = pygame.Surface((rect.width + 18, rect.height + 18), pygame.SRCALPHA)
+        shadow.fill((0, 0, 0, 0))
+        pygame.draw.rect(shadow, (22, 24, 28, 70), shadow.get_rect(), border_radius=10)
+        self.screen.blit(shadow, (rect.x + 10 + depth * 2, rect.y + 12 + depth * 2))
+
+        pygame.draw.rect(self.screen, fill, rect, border_radius=8)
+        title_bar = pygame.Rect(rect.x, rect.y, rect.width, 54)
+        pygame.draw.rect(self.screen, (250, 242, 232), title_bar, border_top_left_radius=8, border_top_right_radius=8)
+        pygame.draw.line(self.screen, LINE, (rect.x, title_bar.bottom), (rect.right, title_bar.bottom), 2)
+        pygame.draw.rect(self.screen, color, rect, 3, border_radius=8)
+        self.text("popup_title", title, (rect.x + 24, rect.y + 16), color)
+
+    def wrap_text(self, font_name: str, text: str, max_width: int) -> list[str]:
+        font = self.fonts[font_name]
+        words = text.split(" ")
+        lines: list[str] = []
+        current_line = ""
+
+        for word in words:
+            candidate = f"{current_line} {word}" if current_line else word
+            if font.size(candidate)[0] <= max_width:
+                current_line = candidate
+            else:
+                if current_line:
+                    lines.append(current_line)
+                current_line = word
+
+        if current_line:
+            lines.append(current_line)
+
+        return lines
+
+
+class UILayer:
+    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
+        raise NotImplementedError
+
+    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
+        return False
+
+    def on_escape(self, scene: "PlayScene") -> bool:
+        scene.close_top_layer()
+        return True
+
+
+class DialoguePopup(UILayer):
+    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
+        dialogue = scene.engine.dialogue.current
+        panel = pygame.Rect(92 + depth * 28, 86 + depth * 20, WIDTH - 184, 348)
+        ui.popup_frame(panel, "Dialogue", BLUE, depth)
+        ui.button(pygame.Rect(panel.right - 116, panel.y + 14, 88, 34), "CLOSE", "close_dialogue", WARN)
+
+        text_lines = ui.wrap_text("body", dialogue.text, panel.width - 48)
+        line_y = panel.y + 84
+        for line in text_lines:
+            ui.text("body", line, (panel.x + 24, line_y), INK)
+            line_y += ui.fonts["body"].get_height() + 6
+
+        if scene.dialogue_history:
+            ui.button(pygame.Rect(panel.right - 212, panel.y + 14, 84, 34), "뒤로", "dialogue_back", WARN)
+
+        if dialogue.choices:
+            choice_y = line_y + 16
+            for index, choice in enumerate(dialogue.choices):
+                button_rect = pygame.Rect(panel.x + 24, choice_y, panel.width - 48, 48)
+                ui.button(button_rect, choice["label"], f"dialogue_choice_{index}", ACCENT)
+                choice_y += 60
+        else:
+            info_text = "선택지가 없습니다. ESC를 눌러 대화를 종료하거나 뒤로 가기 버튼을 누르세요." if scene.dialogue_history else "선택지가 없습니다. ESC를 눌러 대화를 종료하세요."
+            ui.text("small", info_text, (panel.x + 24, panel.bottom - 40), MUTED)
+
+    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
+        for button in scene.buttons:
+            if not button.contains(pos):
+                continue
+            if button.action == "close_dialogue":
+                scene.close_top_layer()
+                return True
+            if button.action.startswith("dialogue_choice"):
+                scene.dialogue_history.append(scene.engine.dialogue.current_id)
+                choice_index = int(button.action.split("_")[-1])
+                scene.engine.dialogue.choose(choice_index)
+                return True
+            if button.action == "dialogue_back":
+                scene.go_back_dialogue()
+                return True
+        return True
+
+
+class AssetPopup(UILayer):
+    def __init__(self, kind: str) -> None:
+        self.kind = kind
+
+    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
+        is_tree = self.kind == "tree"
+        title = "트리" if is_tree else "그래프"
+        rect = pygame.Rect(112 + depth * 28, 74 + depth * 22, WIDTH - 224, HEIGHT - 142)
+        ui.popup_frame(rect, title, ACCENT, depth)
+
+        image = scene.tree_image if is_tree else scene.graph_image
+        if image is None:
+            ui.text("heading", "이미지를 불러올 수 없습니다.", (rect.x + 28, rect.y + 92), WARN)
+            ui.button(pygame.Rect(rect.right - 132, rect.y + 14, 104, 34), "CLOSE", "close_asset", WARN)
+            return
+
+        image_rect = image.get_rect()
+        max_width = rect.width - 64
+        max_height = rect.height - 114
+        if image_rect.width > max_width or image_rect.height > max_height:
+            scale = min(max_width / image_rect.width, max_height / image_rect.height)
+            image = pygame.transform.smoothscale(
+                image,
+                (round(image_rect.width * scale), round(image_rect.height * scale)),
+            )
+            image_rect = image.get_rect()
+
+        content_rect = pygame.Rect(rect.x + 32, rect.y + 74, rect.width - 64, rect.height - 104)
+        image_rect.center = content_rect.center
+        ui.screen.blit(image, image_rect)
+        ui.button(pygame.Rect(rect.right - 132, rect.y + 14, 104, 34), "CLOSE", "close_asset", WARN)
+        ui.text("small", "ESC를 눌러 닫기", (rect.x + 28, rect.bottom - 32), MUTED)
+
+    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
+        for button in scene.buttons:
+            if button.contains(pos) and button.action == "close_asset":
+                scene.close_top_layer()
+                return True
+        return True
+
+
+class InspectPopup(UILayer):
+    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
+        analysis = scene.analysis()
+        rect = pygame.Rect(214 + depth * 34, 142 + depth * 24, 500, 286)
+        ui.popup_frame(rect, "INSPECT MODE", WARN, depth)
+        if analysis.forbidden_path is None:
+            body = "No forbidden relationship path detected."
+        else:
+            body = f"Forbidden path: {' -> '.join(analysis.forbidden_path)}"
+        ui.text("body", body, (rect.x + 28, rect.y + 96), INK)
+        ui.text("small", "RelationshipGraph BFS result", (rect.x + 28, rect.y + 134), MUTED)
+        ui.button(pygame.Rect(rect.right - 160, rect.bottom - 68, 132, 44), "CLOSE", "close_inspect", WARN)
+
+    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
+        for button in scene.buttons:
+            if button.contains(pos) and button.action == "close_inspect":
+                scene.close_top_layer()
+                return True
+        return True
+
+
+class WarningPopup(UILayer):
+    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
+        analysis = scene.analysis()
+        rect = pygame.Rect(356 + depth * 30, 210 + depth * 18, 372, 216)
+        ui.popup_frame(rect, "WARNING NOTICE", WARN, depth, fill=(255, 249, 235))
+        ui.text("body", "Contradiction detected.", (rect.x + 30, rect.y + 88), INK)
+        path = analysis.forbidden_path or []
+        ui.text("small", " -> ".join(path), (rect.x + 30, rect.y + 122), MUTED)
+        ui.button(pygame.Rect(rect.right - 138, rect.bottom - 62, 110, 42), "OK", "close_warning", WARN)
+
+    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
+        for button in scene.buttons:
+            if button.contains(pos) and button.action == "close_warning":
+                scene.close_top_layer()
+                return True
+        return True
 
 
 class PlayScene:
@@ -38,14 +259,12 @@ class PlayScene:
         self.notice_text = ""
         self.notice_timer = 0.0
         self.warning_timer = 0.0
-        self.active_view: str | None = None
-        self.dialogue_active = True
         self.dialogue_history: list[str] = []
         self.tree_image: pygame.Surface | None = None
         self.graph_image: pygame.Surface | None = None
         self.asset_dir = Path(__file__).resolve().parents[1] / "assets" / "data"
         self.engine.ui_stack.clear()
-        self.engine.ui_stack.push("PLAY")
+        self.engine.ui_stack.push(DialoguePopup())
 
     def run(self) -> None:
         pygame.init()
@@ -59,6 +278,7 @@ class PlayScene:
             "heading": pygame.font.SysFont("malgungothic", 24),
             "body": pygame.font.SysFont("malgungothic", 18),
             "small": pygame.font.SysFont("malgungothic", 15),
+            "popup_title": pygame.font.SysFont("malgungothic", 20),
         }
 
         running = True
@@ -87,63 +307,39 @@ class PlayScene:
         first, second = self._current_pair()
         return self.engine.analyze_pair(first["id"], second["id"])
 
+    def analysis(self) -> MatchAnalysis:
+        return self._analysis()
+
     def _handle_click(self, pos: tuple[int, int]) -> None:
-        if self.dialogue_active:
-            for button in self.buttons:
-                if button.rect.collidepoint(pos):
-                    if button.action.startswith("dialogue_choice"):
-                        self.dialogue_history.append(self.engine.dialogue.current_id)
-                        choice_index = int(button.action.split("_")[-1])
-                        self.engine.dialogue.choose(choice_index)
-                        return
-                    if button.action == "dialogue_back":
-                        self._go_back_dialogue()
-                        return
+        top_layer = self.engine.ui_stack.peek()
+        if isinstance(top_layer, UILayer):
+            top_layer.handle_click(self, pos)
             return
 
-        current = self.engine.ui_stack.peek()
         for button in self.buttons:
-            if button.rect.collidepoint(pos):
-                if current == "WARNING" and button.action != "close_warning":
-                    return
-                if current == "INSPECT" and button.action != "close_inspect":
-                    return
+            if button.contains(pos):
                 if button.action == "inspect":
                     self._inspect_pair()
                 elif button.action == "next":
                     self.pair_index = (self.pair_index + 1) % len(self.profiles)
                     self.notice_text = ""
                 elif button.action == "tree":
-                    self.active_view = "tree"
+                    self.engine.ui_stack.push(AssetPopup("tree"))
                     self.notice_text = ""
                 elif button.action == "graph":
-                    self.active_view = "graph"
+                    self.engine.ui_stack.push(AssetPopup("graph"))
                     self.notice_text = ""
-                elif button.action == "close_warning":
-                    self._close_overlay("WARNING")
-                elif button.action == "close_inspect":
-                    self._close_overlay("INSPECT")
                 return
 
     def _handle_escape(self) -> bool:
-        # ESC during dialogue should close the dialogue (not go back).
-        if self.dialogue_active:
-            self.dialogue_active = False
-            return True
-
-        if self.active_view is not None:
-            self.active_view = None
-            return True
-
-        current = self.engine.ui_stack.peek()
-        if current in {"WARNING", "INSPECT"}:
-            self._close_overlay(current)
-            return True
+        top_layer = self.engine.ui_stack.peek()
+        if isinstance(top_layer, UILayer):
+            return top_layer.on_escape(self)
         return False
 
     def _inspect_pair(self) -> None:
         analysis = self._analysis()
-        self.engine.ui_stack.push("INSPECT")
+        self.engine.ui_stack.push(InspectPopup())
         if analysis.forbidden_path is None:
             self.notice_text = "INSPECT: 금지 관계 경로가 발견되지 않았습니다."
             self.notice_timer = 2.5
@@ -153,10 +349,8 @@ class PlayScene:
         self.notice_timer = 3.5
         self.engine.event_queue.enqueue("warning_print")
 
-    def _close_overlay(self, overlay_name: str) -> None:
-        if self.engine.ui_stack.peek() == overlay_name:
-            self.engine.ui_stack.pop()
-        elif self.engine.ui_stack.peek() == "INSPECT" and overlay_name == "WARNING":
+    def close_top_layer(self) -> None:
+        if isinstance(self.engine.ui_stack.peek(), UILayer):
             self.engine.ui_stack.pop()
 
     def _update(self, dt: float) -> None:
@@ -167,233 +361,78 @@ class PlayScene:
 
         if self.warning_timer > 0:
             self.warning_timer = max(0, self.warning_timer - dt)
-            if self.warning_timer == 0 and self.engine.ui_stack.peek() == "WARNING":
+            if self.warning_timer == 0 and isinstance(self.engine.ui_stack.peek(), WarningPopup):
                 self.engine.ui_stack.pop()
 
         if self.warning_timer == 0 and not self.engine.event_queue.is_empty():
             event_name = self.engine.event_queue.dequeue()
             if event_name == "warning_print":
                 self.warning_timer = 2.8
-                self.engine.ui_stack.push("WARNING")
+                self.engine.ui_stack.push(WarningPopup())
 
     def _draw(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
-        if self.dialogue_active:
-            self._draw_dialogue(screen, fonts)
-            return
-
         analysis = self._analysis()
-        if self.active_view is not None:
-            self._draw_asset_view(screen, fonts)
-            return
-
         screen.fill(BG)
-        self.buttons = []
+        ui = UIContext(screen, fonts)
 
-        self._text(screen, fonts["title"], "DateStructure, Please", (40, 30), INK)
-        self._text(screen, fonts["body"], "Moderator review desk", (44, 72), MUTED)
-        self._draw_profile_card(screen, fonts, analysis.first, pygame.Rect(46, 128, 350, 250))
-        self._draw_profile_card(screen, fonts, analysis.second, pygame.Rect(564, 128, 350, 250))
-        self._draw_analysis_panel(screen, fonts, analysis)
-        self._draw_actions(screen, fonts)
+        ui.text("title", "DateStructure, Please", (40, 30), INK)
+        ui.text("body", "Moderator review desk", (44, 72), MUTED)
+        self._draw_profile_card(ui, analysis.first, pygame.Rect(46, 128, 350, 250))
+        self._draw_profile_card(ui, analysis.second, pygame.Rect(564, 128, 350, 250))
+        self._draw_analysis_panel(ui, analysis)
+        self._draw_actions(ui)
 
-        current = self.engine.ui_stack.peek()
-        if current == "INSPECT":
-            self._draw_inspect_overlay(screen, fonts, analysis)
-        elif current == "WARNING":
-            self._draw_warning_overlay(screen, fonts, analysis)
+        overlays = self.engine.ui_stack.items()
+        if overlays:
+            ui.scrim()
 
-    def _draw_asset_view(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
-        screen.fill(BG)
-        image = self.tree_image if self.active_view == "tree" else self.graph_image
-        if image is None:
-            self._text(screen, fonts["heading"], "이미지를 불러올 수 없습니다.", (40, 40), WARN)
-            return
+        for depth, layer in enumerate(overlays):
+            layer.draw(self, ui, depth)
 
-        image_rect = image.get_rect()
-        max_width = WIDTH - 80
-        max_height = HEIGHT - 120
-        if image_rect.width > max_width or image_rect.height > max_height:
-            scale = min(max_width / image_rect.width, max_height / image_rect.height)
-            image = pygame.transform.smoothscale(
-                image,
-                (round(image_rect.width * scale), round(image_rect.height * scale)),
-            )
-            image_rect = image.get_rect()
-
-        image_rect.center = (WIDTH // 2, HEIGHT // 2)
-        screen.blit(image, image_rect)
-        title = "트리" if self.active_view == "tree" else "그래프"
-        self._text(screen, fonts["heading"], title, (40, 30), INK)
-        self._text(screen, fonts["small"], "ESC를 눌러 돌아가기", (40, HEIGHT - 40), MUTED)
-
-    def _draw_dialogue(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
-        screen.fill(BG)
-        self.buttons = []
-        dialogue = self.engine.dialogue.current
-
-        panel = pygame.Rect(60, 80, WIDTH - 120, 320)
-        pygame.draw.rect(screen, CARD, panel, border_radius=12)
-        pygame.draw.rect(screen, LINE, panel, 2, border_radius=12)
-        self._text(screen, fonts["title"], "Dialogue", (panel.x + 24, panel.y + 20), INK)
-
-        text_lines = self._wrap_text(fonts["body"], dialogue.text, panel.width - 48)
-        line_y = panel.y + 80
-        for line in text_lines:
-            self._text(screen, fonts["body"], line, (panel.x + 24, line_y), INK)
-            line_y += fonts["body"].get_height() + 6
-
-        if self.dialogue_history:
-            back_button = Button(pygame.Rect(panel.right - 116, panel.y + 16, 96, 40), "뒤로", "dialogue_back")
-            self._draw_button(screen, fonts, back_button, WARN)
-
-        if dialogue.choices:
-            choice_y = line_y + 16
-            for index, choice in enumerate(dialogue.choices):
-                button_rect = pygame.Rect(panel.x + 24, choice_y, panel.width - 48, 48)
-                choice_button = Button(button_rect, choice["label"], f"dialogue_choice_{index}")
-                self._draw_button(screen, fonts, choice_button, ACCENT)
-                choice_y += 60
-        else:
-            info_text = "선택지가 없습니다. ESC를 눌러 대화를 종료하거나 뒤로 가기 버튼을 누르세요." if self.dialogue_history else "선택지가 없습니다. ESC를 눌러 대화를 종료하세요."
-            self._text(
-                screen,
-                fonts["small"],
-                info_text,
-                (panel.x + 24, panel.bottom - 40),
-                MUTED,
-            )
+        self.buttons = ui.buttons
 
     def _draw_profile_card(
         self,
-        screen: pygame.Surface,
-        fonts: dict[str, pygame.font.Font],
+        ui: UIContext,
         profile: dict,
         rect: pygame.Rect,
     ) -> None:
-        pygame.draw.rect(screen, CARD, rect, border_radius=8)
-        pygame.draw.rect(screen, LINE, rect, 2, border_radius=8)
-        self._text(screen, fonts["heading"], profile["name"], (rect.x + 24, rect.y + 24), INK)
-        self._text(screen, fonts["body"], f"ID: {profile['id']}", (rect.x + 24, rect.y + 70), MUTED)
-        self._text(screen, fonts["body"], f"City: {profile['city']}", (rect.x + 24, rect.y + 106), INK)
-        self._text(screen, fonts["body"], f"Hobby: {profile['hobby']}", (rect.x + 24, rect.y + 142), INK)
-        self._text(screen, fonts["body"], f"Tier: {profile['tier']}", (rect.x + 24, rect.y + 178), INK)
-        self._text(screen, fonts["small"], f"Suspicion: {profile['suspicion']}", (rect.x + 24, rect.y + 218), WARN)
+        pygame.draw.rect(ui.screen, CARD, rect, border_radius=8)
+        pygame.draw.rect(ui.screen, LINE, rect, 2, border_radius=8)
+        ui.text("heading", profile["name"], (rect.x + 24, rect.y + 24), INK)
+        ui.text("body", f"ID: {profile['id']}", (rect.x + 24, rect.y + 70), MUTED)
+        ui.text("body", f"City: {profile['city']}", (rect.x + 24, rect.y + 106), INK)
+        ui.text("body", f"Hobby: {profile['hobby']}", (rect.x + 24, rect.y + 142), INK)
+        ui.text("body", f"Tier: {profile['tier']}", (rect.x + 24, rect.y + 178), INK)
+        ui.text("small", f"Suspicion: {profile['suspicion']}", (rect.x + 24, rect.y + 218), WARN)
 
     def _draw_analysis_panel(
         self,
-        screen: pygame.Surface,
-        fonts: dict[str, pygame.font.Font],
+        ui: UIContext,
         analysis: MatchAnalysis,
     ) -> None:
         panel = pygame.Rect(278, 410, 404, 150)
-        pygame.draw.rect(screen, (250, 249, 244), panel, border_radius=8)
-        pygame.draw.rect(screen, LINE, panel, 2, border_radius=8)
-        self._text(screen, fonts["heading"], "Matching Analysis", (panel.x + 24, panel.y + 18), INK)
-        self._text(screen, fonts["body"], f"매칭 적합도 점수: {analysis.score}", (panel.x + 24, panel.y + 62), ACCENT)
+        pygame.draw.rect(ui.screen, (250, 249, 244), panel, border_radius=8)
+        pygame.draw.rect(ui.screen, LINE, panel, 2, border_radius=8)
+        ui.text("heading", "Matching Analysis", (panel.x + 24, panel.y + 18), INK)
+        ui.text("body", f"매칭 적합도 점수: {analysis.score}", (panel.x + 24, panel.y + 62), ACCENT)
         distance_text = "unreachable" if math.isinf(analysis.travel_distance) else f"{analysis.travel_distance:.1f}"
-        self._text(screen, fonts["body"], f"예상 이동 거리: {distance_text}", (panel.x + 24, panel.y + 94), BLUE)
-        self._text(screen, fonts["small"], f"HobbyTree distance: {analysis.hobby_distance}", (panel.x + 24, panel.y + 124), MUTED)
+        ui.text("body", f"예상 이동 거리: {distance_text}", (panel.x + 24, panel.y + 94), BLUE)
+        ui.text("small", f"HobbyTree distance: {analysis.hobby_distance}", (panel.x + 24, panel.y + 124), MUTED)
 
-    def _draw_actions(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
-        tree_button = Button(pygame.Rect(WIDTH - 236, 30, 100, 42), "트리", "tree")
-        graph_button = Button(pygame.Rect(WIDTH - 122, 30, 100, 42), "그래프", "graph")
-        inspect = Button(pygame.Rect(46, 514, 170, 52), "INSPECT", "inspect")
-        next_pair = Button(pygame.Rect(744, 514, 170, 52), "NEXT PAIR", "next")
-        self._draw_button(screen, fonts, tree_button, ACCENT)
-        self._draw_button(screen, fonts, graph_button, ACCENT)
-        self._draw_button(screen, fonts, inspect, WARN)
-        self._draw_button(screen, fonts, next_pair, ACCENT)
+    def _draw_actions(self, ui: UIContext) -> None:
+        ui.button(pygame.Rect(WIDTH - 236, 30, 100, 42), "트리", "tree", ACCENT)
+        ui.button(pygame.Rect(WIDTH - 122, 30, 100, 42), "그래프", "graph", ACCENT)
+        ui.button(pygame.Rect(46, 514, 170, 52), "INSPECT", "inspect", WARN)
+        ui.button(pygame.Rect(744, 514, 170, 52), "NEXT PAIR", "next", ACCENT)
         if self.notice_text:
-            self._text(screen, fonts["small"], self.notice_text, (46, 588), WARN)
+            ui.text("small", self.notice_text, (46, 588), WARN)
 
-    def _draw_inspect_overlay(
-        self,
-        screen: pygame.Surface,
-        fonts: dict[str, pygame.font.Font],
-        analysis: MatchAnalysis,
-    ) -> None:
-        self._scrim(screen)
-        rect = pygame.Rect(250, 168, 460, 260)
-        pygame.draw.rect(screen, CARD, rect, border_radius=8)
-        pygame.draw.rect(screen, WARN, rect, 2, border_radius=8)
-        self._text(screen, fonts["heading"], "INSPECT MODE", (rect.x + 28, rect.y + 26), WARN)
-        if analysis.forbidden_path is None:
-            body = "No forbidden relationship path detected."
-        else:
-            body = f"Forbidden path: {' -> '.join(analysis.forbidden_path)}"
-        self._text(screen, fonts["body"], body, (rect.x + 28, rect.y + 86), INK)
-        self._text(screen, fonts["small"], "RelationshipGraph BFS result", (rect.x + 28, rect.y + 124), MUTED)
-        close = Button(pygame.Rect(rect.x + 280, rect.y + 184, 132, 44), "CLOSE", "close_inspect")
-        self._draw_button(screen, fonts, close, WARN)
-
-    def _draw_warning_overlay(
-        self,
-        screen: pygame.Surface,
-        fonts: dict[str, pygame.font.Font],
-        analysis: MatchAnalysis,
-    ) -> None:
-        self._scrim(screen)
-        rect = pygame.Rect(286, 190, 388, 220)
-        pygame.draw.rect(screen, (255, 249, 235), rect, border_radius=8)
-        pygame.draw.rect(screen, WARN, rect, 3, border_radius=8)
-        self._text(screen, fonts["heading"], "WARNING NOTICE", (rect.x + 34, rect.y + 30), WARN)
-        self._text(screen, fonts["body"], "Contradiction detected.", (rect.x + 34, rect.y + 86), INK)
-        path = analysis.forbidden_path or []
-        self._text(screen, fonts["small"], " -> ".join(path), (rect.x + 34, rect.y + 120), MUTED)
-        close = Button(pygame.Rect(rect.x + 222, rect.y + 150, 116, 42), "OK", "close_warning")
-        self._draw_button(screen, fonts, close, WARN)
-
-    def _draw_button(
-        self,
-        screen: pygame.Surface,
-        fonts: dict[str, pygame.font.Font],
-        button: Button,
-        color: tuple[int, int, int],
-    ) -> None:
-        pygame.draw.rect(screen, color, button.rect, border_radius=8)
-        label = fonts["body"].render(button.label, True, (255, 255, 255))
-        screen.blit(label, label.get_rect(center=button.rect.center))
-        self.buttons.append(button)
-
-    def _scrim(self, screen: pygame.Surface) -> None:
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((20, 20, 20, 120))
-        screen.blit(overlay, (0, 0))
-
-    def _text(
-        self,
-        screen: pygame.Surface,
-        font: pygame.font.Font,
-        text: str,
-        pos: tuple[int, int],
-        color: tuple[int, int, int],
-    ) -> None:
-        screen.blit(font.render(text, True, color), pos)
-
-    def _go_back_dialogue(self) -> None:
+    def go_back_dialogue(self) -> None:
         if not self.dialogue_history:
             return
         previous_id = self.dialogue_history.pop()
         self.engine.dialogue.current_id = previous_id
-
-    def _wrap_text(self, font: pygame.font.Font, text: str, max_width: int) -> list[str]:
-        words = text.split(" ")
-        lines: list[str] = []
-        current_line = ""
-
-        for word in words:
-            candidate = f"{current_line} {word}" if current_line else word
-            if font.size(candidate)[0] <= max_width:
-                current_line = candidate
-            else:
-                if current_line:
-                    lines.append(current_line)
-                current_line = word
-
-        if current_line:
-            lines.append(current_line)
-
-        return lines
 
 
 def run_game(engine: MatchmakingEngine) -> None:

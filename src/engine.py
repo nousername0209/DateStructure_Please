@@ -44,7 +44,7 @@ class MatchmakingEngine:
         self.hobbies = hobbies
         self.map_graph = map_graph
         self.dialogue = dialogue
-        self.ui_stack = UIStack[str]()
+        self.ui_stack = UIStack[object]()
         self.event_queue = EventQueue[str]()
 
     def analyze_pair(

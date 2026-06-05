@@ -25,5 +25,8 @@ class UIStack(Generic[T]):
     def clear(self) -> None:
         self._items.clear()
 
+    def items(self) -> tuple[T, ...]:
+        return tuple(self._items)
+
     def __len__(self) -> int:
         return len(self._items)

@@ -301,7 +301,9 @@ class PlayScene:
 
         for button in self.buttons:
             if button.contains(pos):
-                if button.action == "reject":
+                if button.action == "restart":      
+                    self._restart_game()
+                elif button.action == "reject":
                     self._reject_pair()
                 elif button.action == "next":
                     first, second = self._current_pair()
@@ -385,9 +387,10 @@ class PlayScene:
 
         # 이 부분을 추가함 - 호준
         if self.game_state != "playing":
-            self._draw_end_screen(ui)
-            # 버튼 클릭이 더 이상 먹히지 않도록 버튼 리스트를 비워버림
-            self.buttons = []
+            ui.buttons = [] # 배경에 있는 기존 플레이용 버튼들을 비활성화
+            self._draw_end_screen(ui) # 엔딩 창과 RESTART 버튼 렌더링
+            
+        self.buttons = ui.buttons # 최종적으로 클릭 가능한 버튼들을 확정
 
     def _draw_reputation(self, ui: UIContext) -> None:
         box = pygame.Rect(724, 26, 190, 52)
@@ -452,21 +455,26 @@ class PlayScene:
             self.game_state = "clear"
 
     def _draw_end_screen(self, ui: UIContext) -> None:
-        """게임 오버 또는 클리어 시 화면을 덮는 팝업을 그림"""
+        """게임 오버 또는 클리어 시 화면을 덮는 팝업과 재시작 버튼을 그림"""
         ui.scrim() # 배경을 어둡게 처리
-        panel = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - 100, 400, 200)
+        
+        # 패널 높이를 200에서 230으로 살짝 키워서 겹침을 방지함
+        panel = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - 115, 400, 230)
         
         if self.game_state == "game_over":
             ui.popup_frame(panel, "GAME OVER", WARN, 0)
-            ui.text("heading", "해고되었습니다.", (panel.x + 130, panel.y + 70), WARN)
-            ui.text("body", "명성이 바닥나 심사관 자격을 박탈당했습니다.", (panel.x + 30, panel.y + 110), INK)
+            ui.text("heading", "해고되었습니다.", (panel.x + 130, panel.y + 60), WARN)
+            ui.text("body", "명성이 바닥나 심사관 자격을 박탈당했습니다.", (panel.x + 30, panel.y + 100), INK)
         elif self.game_state == "clear":
             ui.popup_frame(panel, "STAGE CLEAR", ACCENT, 0)
-            ui.text("heading", "오늘의 업무 종료", (panel.x + 115, panel.y + 70), ACCENT)
-            ui.text("body", f"성공적으로 업무를 마쳤습니다! (남은 명성: {self.engine.reputation})", (panel.x + 35, panel.y + 110), INK)
+            ui.text("heading", "오늘의 업무 종료", (panel.x + 115, panel.y + 60), ACCENT)
+            ui.text("body", f"성공적으로 업무를 마쳤습니다! (남은 명성: {self.engine.reputation})", (panel.x + 35, panel.y + 100), INK)
         
-        ui.text("small", "ESC를 눌러 게임을 종료하세요.", (panel.x + 95, panel.bottom - 40), MUTED)
-
+        # 버튼은 패널 하단에서 80픽셀 위로 올려서 넉넉하게 배치
+        ui.button(pygame.Rect(panel.x + 130, panel.bottom - 80, 140, 40), "RESTART", "restart", BLUE)
+        
+        # 안내 텍스트는 버튼 아래인 하단에서 25픽셀 위로 배치하여 절대 겹치지 않게
+        ui.text("small", "ESC를 눌러 게임을 종료하세요.", (panel.x + 95, panel.bottom - 25), MUTED)
     
     def go_back_dialogue(self) -> None:
         if not self.dialogue_history:
@@ -474,6 +482,18 @@ class PlayScene:
         previous_id = self.dialogue_history.pop()
         self.engine.dialogue.current_id = previous_id
 
+    def _restart_game(self) -> None:
+        """게임을 초기 상태로 되돌리고 재시작"""
+        self.game_state = "playing"
+        self.pair_index = 0
+        self.engine.reputation = 80  # 명성을 초기 점수(80점)로 복구
+        random.shuffle(self.match_queue)  # 큐를 다시 섞어서 새로운 패턴 제공
+        self.notice_text = ""
+        self.notice_timer = 0.0
+        self.engine.ui_stack.clear()
+        
+        # 선택 사항: 재시작 시 오프닝 대화창을 다시 띄우고 싶다면 아래 주석을 해제하세요
+        # self.engine.ui_stack.push(DialoguePopup())
 
 def run_game(engine: MatchmakingEngine) -> None:
     PlayScene(engine).run()

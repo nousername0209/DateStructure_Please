@@ -31,6 +31,11 @@ class MatchAnalysis:
 
 
 class MatchmakingEngine:
+    # 기획자가 언제든 한 곳에서 쉽게 밸런스를 수정할 수 있도록 상수화
+    PENALTY_HOBBY = 10
+    PENALTY_TRAVEL = 5
+    PASS_SCORE = 60
+
     def __init__(
         self,
         profiles: list[dict],
@@ -80,9 +85,9 @@ class MatchmakingEngine:
         else:
             score = 100
             if hobby_distance > hobby_distance_limit:
-                score -= (hobby_distance - hobby_distance_limit) * 10
+                score -= (hobby_distance - hobby_distance_limit) * self.PENALTY_HOBBY
             if travel_distance > long_distance_limit:
-                score -= int((travel_distance - long_distance_limit) * 5)
+                score -= int((travel_distance - long_distance_limit) * self.PENALTY_TRAVEL)
 
         return MatchAnalysis(
             first=first,
@@ -116,19 +121,19 @@ class MatchmakingEngine:
             return MatchResult(
                 False,
                 0,
-                [f"REJECT: forbidden relationship path {' -> '.join(analysis.forbidden_path)}"],
+                [f"금지된 관계망 적발 : {' -> '.join(analysis.forbidden_path)}"],
             )
 
         if analysis.hobby_distance > hobby_distance_limit:
             penalty = (analysis.hobby_distance - hobby_distance_limit) * 10
-            reasons.append(f"Interest mismatch penalty: -{penalty}")
+            reasons.append(f"취미가 맞지 않음. 벌점 부과 : -{penalty}")
 
         if analysis.travel_distance > long_distance_limit:
             penalty = int((analysis.travel_distance - long_distance_limit) * 5)
-            reasons.append(f"Long-distance penalty: -{penalty}")
+            reasons.append(f"거리가 너무 멂. 벌점 부과 : -{penalty}")
 
-        accepted = analysis.score >= 60
-        reasons.append("ACCEPT" if accepted else "REJECT: score below threshold")
+        accepted = analysis.score >= self.PASS_SCORE
+        reasons.append("최종 승인 (적합한 매칭)" if accepted else "최종 거절 (기준 점수 미달)")
         self.event_queue.enqueue("match_success" if accepted else "warning_print")
         return MatchResult(accepted, analysis.score, reasons)
 

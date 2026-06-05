@@ -175,7 +175,6 @@ class DialoguePopup(UILayer):
 class AssetPopup(UILayer):
     def __init__(self, kind: str) -> None:
         self.kind = kind
-        # 물리 시뮬레이션 결과를 캐싱해둘 변수 (매 프레임 연산 방지)
         self.cached_layout: dict[str, tuple[int, int]] | None = None
 
     def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
@@ -200,29 +199,25 @@ class AssetPopup(UILayer):
         ui.button(pygame.Rect(rect.right - 132, rect.y + 14, 104, 34), "CLOSE", "close_asset", WARN)
         ui.text("small", "ESC를 눌러 닫기", (rect.x + 28, rect.bottom - 32), MUTED)
 
-    # [핵심 알고리즘] 자체 제작 2D 물리 엔진 (Force-Directed Layout)
     def _compute_physics_layout(self, map_data: dict, area: pygame.Rect) -> dict[str, tuple[int, int]]:
         cities = list(map_data.keys())
         if not cities: return {}
 
         center_x, center_y = area.width / 2, area.height / 2
-        # 초기 무작위 배치
         positions = {city: [center_x + random.randint(-50, 50), center_y + random.randint(-50, 50)] for city in cities}
         velocities = {city: [0.0, 0.0] for city in cities}
 
-        # 동적 스케일링 (가장 먼 거리를 화면의 60% 길이로 환산하여 어떤 데이터든 꽉 차게 보이게 함)
         max_dist = max([d for edges in map_data.values() for _, d in edges] + [1])
         SCALE = (min(area.width, area.height) * 0.6) / max_dist
 
-        ITERATIONS = 150      # 시뮬레이션 횟수
-        REPULSION = 5000.0    # 자석처럼 서로 밀어내는 힘
-        SPRING_K = 0.1        # 용수철 탄성 (거리 유지하려는 힘)
-        DAMPING = 0.85        # 진자 운동 감쇠 (천천히 멈추게 함)
+        ITERATIONS = 150
+        REPULSION = 5000.0
+        SPRING_K = 0.1
+        DAMPING = 0.85
 
         for _ in range(ITERATIONS):
             forces = {city: [0.0, 0.0] for city in cities}
 
-            # 1. 척력 (모든 도시끼리 밀어내기)
             for i in range(len(cities)):
                 for j in range(i + 1, len(cities)):
                     c1, c2 = cities[i], cities[j]
@@ -237,7 +232,6 @@ class AssetPopup(UILayer):
                     forces[c2][0] -= (dx / dist) * force
                     forces[c2][1] -= (dy / dist) * force
 
-            # 2. 인력 (도로로 연결된 도시끼리 용수철로 당기기/밀기)
             drawn_edges = set()
             for city, edges in map_data.items():
                 for neighbor, distance in edges:
@@ -250,21 +244,18 @@ class AssetPopup(UILayer):
                         if dist == 0: dist = 0.1
                         
                         ideal_dist = distance * SCALE
-                        # 현재 거리가 이상적 거리(JSON)보다 멀면 당기고, 가까우면 밀기
                         force = (dist - ideal_dist) * SPRING_K
                         forces[city][0] += (dx / dist) * force
                         forces[city][1] += (dy / dist) * force
                         forces[neighbor][0] -= (dx / dist) * force
                         forces[neighbor][1] -= (dy / dist) * force
 
-            # 3. 위치 업데이트 (뉴턴 제2법칙)
             for city in cities:
                 velocities[city][0] = (velocities[city][0] + forces[city][0]) * DAMPING
                 velocities[city][1] = (velocities[city][1] + forces[city][1]) * DAMPING
                 positions[city][0] += velocities[city][0]
                 positions[city][1] += velocities[city][1]
 
-        # 4. 무게중심을 화면 정중앙으로 예쁘게 보정
         avg_x = sum(p[0] for p in positions.values()) / len(cities)
         avg_y = sum(p[1] for p in positions.values()) / len(cities)
         offset_x = center_x - avg_x
@@ -279,13 +270,11 @@ class AssetPopup(UILayer):
     def _draw_map_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
         map_data = scene.engine.map_graph.adjacency
         
-        # 팝업이 처음 열렸을 때 딱 한 번만 물리 엔진을 가동
         if self.cached_layout is None:
             self.cached_layout = self._compute_physics_layout(map_data, area)
             
         pixel_coords = self.cached_layout
 
-        # 간선(도로) 먼저 그리기
         drawn_edges = set()
         for city, edges in map_data.items():
             for neighbor, distance in edges:
@@ -306,7 +295,6 @@ class AssetPopup(UILayer):
                         pygame.draw.rect(ui.screen, CARD, bg_rect, border_radius=4)
                         ui.screen.blit(text_surf, text_rect)
 
-        # 노드(도시) 그리기
         for city, pos in pixel_coords.items():
             pygame.draw.circle(ui.screen, ACCENT, pos, 18)
             pygame.draw.circle(ui.screen, CARD, pos, 18, 3)
@@ -315,13 +303,44 @@ class AssetPopup(UILayer):
             text_rect = text_surf.get_rect(center=(pos[0], pos[1] + 28))
             ui.screen.blit(text_surf, text_rect)
 
+    def _draw_hobby_tree(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
+        root = scene.engine.hobbies.root
+        if not root:
+            return
+
+        max_depth = max(node.depth for node in scene.engine.hobbies.nodes.values())
+        y_step = area.height // (max_depth + 1) if max_depth > 0 else 0
+
+        def draw_node(node, x_min, x_max, current_y):
+            x = (x_min + x_max) // 2
+            y = current_y
+
+            if node.children:
+                child_width = (x_max - x_min) // len(node.children)
+                for i, child in enumerate(node.children):
+                    child_x_min = x_min + i * child_width
+                    child_x_max = child_x_min + child_width
+                    child_x = (child_x_min + child_x_max) // 2
+                    child_y = current_y + y_step
+                    
+                    pygame.draw.line(ui.screen, LINE, (x, y), (child_x, child_y), 3)
+                    draw_node(child, child_x_min, child_x_max, child_y)
+
+            pygame.draw.rect(ui.screen, CARD, (x - 40, y - 15, 80, 30), border_radius=5)
+            pygame.draw.rect(ui.screen, ACCENT, (x - 40, y - 15, 80, 30), 2, border_radius=5)
+            
+            text_surf = ui.fonts["small"].render(node.name, True, INK)
+            text_rect = text_surf.get_rect(center=(x, y))
+            ui.screen.blit(text_surf, text_rect)
+
+        draw_node(root, area.x, area.right, area.y + 30)
+
     def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
         for button in scene.buttons:
             if button.contains(pos) and button.action == "close_asset":
                 scene.close_top_layer()
                 return True
         return True
-
 
 class PlayScene:
     """Pygame play loop for pair review and contradiction rejection."""

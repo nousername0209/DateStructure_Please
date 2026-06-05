@@ -385,8 +385,8 @@ class PlayScene:
         ui.text("body", f"ID: {profile['id']}", (rect.x + 24, rect.y + 70), MUTED)
         ui.text("body", f"City: {profile['city']}", (rect.x + 24, rect.y + 106), INK)
         ui.text("body", f"Hobby: {profile['hobby']}", (rect.x + 24, rect.y + 142), INK)
-        ui.text("body", f"Tier: {profile['tier']}", (rect.x + 24, rect.y + 178), INK)
-        ui.text("small", f"Suspicion: {profile['suspicion']}", (rect.x + 24, rect.y + 218), WARN)
+        #ui.text("body", f"Tier: {profile['tier']}", (rect.x + 24, rect.y + 178), INK)
+        #ui.text("small", f"Suspicion: {profile['suspicion']}", (rect.x + 24, rect.y + 218), WARN)
 
     def _draw_analysis_panel(
         self,
@@ -414,7 +414,8 @@ class PlayScene:
         spacing = 12
         start_x = panel.x + 24
         
-        ui.button(pygame.Rect(start_x, button_y, button_width, button_height), "관계도\n(Tree)", "tree", ACCENT)
+        # 수정 전 : ui.button(pygame.Rect(start_x, button_y, button_width, button_height), "관계도\n(Tree)", "tree", ACCENT)
+        ui.button(pygame.Rect(start_x, button_y, button_width, button_height), "취미 트리\n(Tree)", "tree", ACCENT)
         ui.button(pygame.Rect(start_x + button_width + spacing, button_y, button_width, button_height), "관계\n그래프", "graph_rel", ACCENT)
         ui.button(pygame.Rect(start_x + (button_width + spacing) * 2, button_y, button_width, button_height), "도시\n그래프", "graph_city", ACCENT)
         

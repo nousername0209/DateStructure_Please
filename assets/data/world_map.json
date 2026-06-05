@@ -3,27 +3,32 @@
     {
       "from": "Seoul",
       "to": "Daejeon",
-      "distance": 2.0
-    },
-    {
-      "from": "Daejeon",
-      "to": "Busan",
-      "distance": 3.0
-    },
-    {
-      "from": "Busan",
-      "to": "Jeju",
-      "distance": 6.5
+      "distance": 1.5
     },
     {
       "from": "Seoul",
       "to": "Gangneung",
+      "distance": 2.0
+    },
+    {
+      "from": "Daejeon",
+      "to": "Gangneung",
+      "distance": 2.5
+    },
+    {
+      "from": "Daejeon",
+      "to": "Busan",
       "distance": 2.5
     },
     {
       "from": "Gangneung",
       "to": "Busan",
-      "distance": 4.0
+      "distance": 3.5
+    },
+    {
+      "from": "Busan",
+      "to": "Jeju",
+      "distance": 3.0
     }
   ]
 }

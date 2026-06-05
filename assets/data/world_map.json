@@ -29,6 +29,26 @@
       "from": "Busan",
       "to": "Jeju",
       "distance": 3.0
+    },
+    {
+      "from": "Seoul",
+      "to": "Incheon",
+      "distance": 0.5
+    },
+    {
+      "from": "Incheon",
+      "to": "Daejeon",
+      "distance": 1.8
+    },
+    {
+      "from": "Daejeon",
+      "to": "Gwangju",
+      "distance": 1.5
+    },
+    {
+      "from": "Gwangju",
+      "to": "Busan",
+      "distance": 1.5
     }
   ]
 }

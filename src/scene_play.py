@@ -629,8 +629,10 @@ class PlayScene:
         """명성이나 큐 상태를 확인하여 게임 오버 또는 클리어 상태로 전환"""
         if self.engine.reputation <= 0:
             self.game_state = "game_over"
+            self.engine.ui_stack.clear()
         elif self.pair_index >= len(self.match_queue):
             self.game_state = "clear"
+            self.engine.ui_stack.clear()
 
     def _draw_end_screen(self, ui: UIContext) -> None:
         """게임 오버 또는 클리어 시 화면을 덮는 팝업과 재시작 버튼을 그림"""

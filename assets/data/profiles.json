@@ -95,6 +95,42 @@
       "suspicion": 95,
       "joined_at": "2026-06-03T16:22:00",
       "blacklist": []
+    },
+    {
+      "id": "u009",
+      "name": "Yoonjae",
+      "city": "Incheon",
+      "hobby": "jazz",
+      "tier": "basic",
+      "tier_priority": 1,
+      "success_rate": 0.22,
+      "suspicion": 88,
+      "joined_at": "2026-06-04T10:00:00",
+      "blacklist": ["u001", "u010"]
+    },
+    {
+      "id": "u010",
+      "name": "Guanwook",
+      "city": "Gwangju",
+      "hobby": "football",
+      "tier": "gold",
+      "tier_priority": 3,
+      "success_rate": 0.85,
+      "suspicion": 12,
+      "joined_at": "2026-06-05T09:15:00",
+      "blacklist": []
+    },
+    {
+      "id": "u011",
+      "name": "Jiwon",
+      "city": "Seoul",
+      "hobby": "oil_painting",
+      "tier": "silver",
+      "tier_priority": 2,
+      "success_rate": 0.61,
+      "suspicion": 34,
+      "joined_at": "2026-06-05T14:30:00",
+      "blacklist": ["u009"]
     }
   ],
   "relationships": [
@@ -121,6 +157,26 @@
     {
       "from": "u006",
       "to": "u008",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u009",
+      "to": "u002",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u009",
+      "to": "u010",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u010",
+      "to": "u006",
+      "type": "best_friend"
+    },
+    {
+      "from": "u011",
+      "to": "u009",
       "type": "scam_partner"
     }
   ]

@@ -734,40 +734,47 @@ class PlayScene:
             self.engine.ui_stack.clear()
 
     def _draw_end_screen(self, ui: UIContext) -> None:
-        """게임 오버 또는 클리어 시 화면을 덮는 팝업과 반응형 텍스트를 그림"""
+        """게임 오버 또는 클리어 시 화면을 덮는 팝업과 완전한 반응형 텍스트를 그림"""
         ui.scrim() 
         
-        # 패널 기본 크기 유지
-        panel = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - 115, 400, 230)
-        
         if self.game_state == "game_over":
-            ui.popup_frame(panel, "GAME OVER", WARN, 0)
+            title_text = "GAME OVER"
             heading_text = "해고되었습니다."
             body_text = "명성이 바닥나 심사관 자격을 박탈당했습니다."
             color = WARN
         else: # clear
-            ui.popup_frame(panel, "STAGE CLEAR", ACCENT, 0)
+            title_text = "STAGE CLEAR"
             heading_text = "오늘의 업무 종료"
             body_text = f"성공적으로 업무를 마쳤습니다! (남은 명성: {self.engine.reputation})"
             color = ACCENT
 
-        # 1. 헤딩(제목) 완벽한 중앙 정렬 렌더링
+        # 1. 텍스트 줄바꿈 연산을 가장 먼저 수행 (너비 320px 기준)
+        wrapped_lines = ui.wrap_text("body", body_text, 320)
+        line_height = ui.fonts["body"].get_height() + 8
+        total_text_height = len(wrapped_lines) * line_height
+
+        # 2. 텍스트 높이에 비례하여 패널(박스)의 세로 길이를 동적으로 계산
+        # 기본 베이스 높이 180px + 텍스트가 차지하는 높이를 더해 유연하게 팽창함
+        panel_height = 180 + total_text_height
+        panel = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - panel_height // 2, 400, panel_height)
+        
+        # 3. 팽창된 패널을 먼저 화면에 그림
+        ui.popup_frame(panel, title_text, color, 0)
+
+        # 4. 헤딩(제목) 렌더링 (위에서 60px 고정)
         heading_surf = ui.fonts["heading"].render(heading_text, True, color)
         heading_rect = heading_surf.get_rect(center=(panel.centerx, panel.y + 60))
         ui.screen.blit(heading_surf, heading_rect)
         
-        # 2. 바디(내용) 텍스트 자동 줄바꿈(Wrap) 및 다중 라인 렌더링
-        # 패널 너비에서 양옆 여백(40px씩)을 뺀 길이(panel.width - 80)를 기준으로 텍스트를 자릅니다.
-        wrapped_lines = ui.wrap_text("body", body_text, panel.width - 80)
-        
-        line_y = panel.y + 100
+        # 5. 본문 텍스트 다중 라인 렌더링
+        line_y = panel.y + 105
         for line in wrapped_lines:
             line_surf = ui.fonts["body"].render(line, True, INK)
             line_rect = line_surf.get_rect(center=(panel.centerx, line_y))
             ui.screen.blit(line_surf, line_rect)
-            line_y += ui.fonts["body"].get_height() + 5 # 다음 줄 간격 5px 추가
+            line_y += line_height
         
-        # 3. 버튼 및 하단 안내 텍스트 완벽한 중앙 정렬
+        # 6. 버튼 및 하단 텍스트는 무조건 패널의 'bottom'을 기준으로 배치하여 절대 겹치지 않게 방어
         ui.button(pygame.Rect(panel.centerx - 70, panel.bottom - 75, 140, 40), "RESTART", "restart", BLUE)
         
         info_surf = ui.fonts["small"].render("ESC를 눌러 게임을 종료하세요.", True, MUTED)

@@ -3,6 +3,7 @@
     {
       "id": "u001",
       "name": "Mina",
+      "gender": "female",
       "city": "Seoul",
       "hobby": "football",
       "tier": "gold",
@@ -15,6 +16,7 @@
     {
       "id": "u002",
       "name": "Jun",
+      "gender": "male",
       "city": "Busan",
       "hobby": "jazz",
       "tier": "silver",
@@ -27,6 +29,7 @@
     {
       "id": "u003",
       "name": "Ara",
+      "gender": "female",
       "city": "Daejeon",
       "hobby": "basketball",
       "tier": "gold",
@@ -39,6 +42,7 @@
     {
       "id": "u004",
       "name": "Theo",
+      "gender": "male",
       "city": "Jeju",
       "hobby": "oil_painting",
       "tier": "basic",
@@ -47,10 +51,11 @@
       "suspicion": 86,
       "joined_at": "2026-05-22T21:10:00",
       "blacklist": []
-    }, 
+    },
     {
       "id": "u005",
       "name": "Sujin",
+      "gender": "female",
       "city": "Gangneung",
       "hobby": "running",
       "tier": "silver",
@@ -63,6 +68,7 @@
     {
       "id": "u006",
       "name": "Leo",
+      "gender": "male",
       "city": "Seoul",
       "hobby": "basketball",
       "tier": "gold",
@@ -75,6 +81,7 @@
     {
       "id": "u007",
       "name": "Yuna",
+      "gender": "female",
       "city": "Busan",
       "hobby": "painting",
       "tier": "basic",
@@ -87,6 +94,7 @@
     {
       "id": "u008",
       "name": "Ian",
+      "gender": "male",
       "city": "Jeju",
       "hobby": "running",
       "tier": "silver",
@@ -99,6 +107,7 @@
     {
       "id": "u009",
       "name": "Yoonjae",
+      "gender": "male",
       "city": "Incheon",
       "hobby": "jazz",
       "tier": "basic",
@@ -111,6 +120,7 @@
     {
       "id": "u010",
       "name": "Guanwook",
+      "gender": "male",
       "city": "Gwangju",
       "hobby": "football",
       "tier": "gold",
@@ -123,6 +133,7 @@
     {
       "id": "u011",
       "name": "Jiwon",
+      "gender": "female",
       "city": "Seoul",
       "hobby": "oil_painting",
       "tier": "silver",

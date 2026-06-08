@@ -1,194 +1,26 @@
 {
   "profiles": [
-    {
-      "id": "u001",
-      "name": "Mina (female)",
-      "gender": "female",
-      "city": "Seoul",
-      "hobby": "football",
-      "tier": "gold",
-      "tier_priority": 3,
-      "success_rate": 0.82,
-      "suspicion": 12,
-      "joined_at": "2026-03-14T09:00:00",
-      "blacklist": ["u004"]
-    },
-    {
-      "id": "u002",
-      "name": "Jun (male)",
-      "gender": "male",
-      "city": "Busan",
-      "hobby": "jazz",
-      "tier": "silver",
-      "tier_priority": 2,
-      "success_rate": 0.63,
-      "suspicion": 21,
-      "joined_at": "2026-04-21T18:20:00",
-      "blacklist": []
-    },
-    {
-      "id": "u003",
-      "name": "Ara (female)",
-      "gender": "female",
-      "city": "Daejeon",
-      "hobby": "basketball",
-      "tier": "gold",
-      "tier_priority": 3,
-      "success_rate": 0.74,
-      "suspicion": 8,
-      "joined_at": "2026-05-03T12:30:00",
-      "blacklist": []
-    },
-    {
-      "id": "u004",
-      "name": "Theo (male)",
-      "gender": "male",
-      "city": "Jeju",
-      "hobby": "oil_painting",
-      "tier": "basic",
-      "tier_priority": 1,
-      "success_rate": 0.31,
-      "suspicion": 86,
-      "joined_at": "2026-05-22T21:10:00",
-      "blacklist": []
-    },
-    {
-      "id": "u005",
-      "name": "Sujin (female)",
-      "gender": "female",
-      "city": "Gangneung",
-      "hobby": "running",
-      "tier": "silver",
-      "tier_priority": 2,
-      "success_rate": 0.68,
-      "suspicion": 15,
-      "joined_at": "2026-05-25T10:15:00",
-      "blacklist": []
-    },
-    {
-      "id": "u006",
-      "name": "Leo (male)",
-      "gender": "male",
-      "city": "Seoul",
-      "hobby": "basketball",
-      "tier": "gold",
-      "tier_priority": 3,
-      "success_rate": 0.88,
-      "suspicion": 5,
-      "joined_at": "2026-05-28T14:40:00",
-      "blacklist": ["u007"]
-    },
-    {
-      "id": "u007",
-      "name": "Yuna (female)",
-      "gender": "female",
-      "city": "Busan",
-      "hobby": "painting",
-      "tier": "basic",
-      "tier_priority": 1,
-      "success_rate": 0.45,
-      "suspicion": 42,
-      "joined_at": "2026-06-01T11:05:00",
-      "blacklist": []
-    },
-    {
-      "id": "u008",
-      "name": "Ian (male)",
-      "gender": "male",
-      "city": "Jeju",
-      "hobby": "running",
-      "tier": "silver",
-      "tier_priority": 2,
-      "success_rate": 0.59,
-      "suspicion": 95,
-      "joined_at": "2026-06-03T16:22:00",
-      "blacklist": []
-    },
-    {
-      "id": "u009",
-      "name": "Yoonjae (male)",
-      "gender": "male",
-      "city": "Incheon",
-      "hobby": "jazz",
-      "tier": "basic",
-      "tier_priority": 1,
-      "success_rate": 0.22,
-      "suspicion": 88,
-      "joined_at": "2026-06-04T10:00:00",
-      "blacklist": ["u001", "u010"]
-    },
-    {
-      "id": "u010",
-      "name": "Guanwook (male)",
-      "gender": "male",
-      "city": "Gwangju",
-      "hobby": "football",
-      "tier": "gold",
-      "tier_priority": 3,
-      "success_rate": 0.85,
-      "suspicion": 12,
-      "joined_at": "2026-06-05T09:15:00",
-      "blacklist": []
-    },
-    {
-      "id": "u011",
-      "name": "Jiwon (female)",
-      "gender": "female",
-      "city": "Seoul",
-      "hobby": "oil_painting",
-      "tier": "silver",
-      "tier_priority": 2,
-      "success_rate": 0.61,
-      "suspicion": 34,
-      "joined_at": "2026-06-05T14:30:00",
-      "blacklist": ["u009"]
-    }
+    {"id": "u001", "name": "Mina", "gender": "female", "city": "Seoul", "hobby": "football", "tier": "gold", "tier_priority": 3, "success_rate": 0.82, "suspicion": 12, "joined_at": "2026-03-14T09:00:00", "blacklist": ["u004"]},
+    {"id": "u002", "name": "Jun", "gender": "male", "city": "Busan", "hobby": "jazz", "tier": "silver", "tier_priority": 2, "success_rate": 0.63, "suspicion": 21, "joined_at": "2026-04-21T18:20:00", "blacklist": []},
+    {"id": "u003", "name": "Ara", "gender": "female", "city": "Daejeon", "hobby": "basketball", "tier": "gold", "tier_priority": 3, "success_rate": 0.74, "suspicion": 8, "joined_at": "2026-05-03T12:30:00", "blacklist": []},
+    {"id": "u004", "name": "Theo", "gender": "male", "city": "Jeju", "hobby": "oil_painting", "tier": "basic", "tier_priority": 1, "success_rate": 0.31, "suspicion": 86, "joined_at": "2026-05-22T21:10:00", "blacklist": []},
+    {"id": "u005", "name": "Sujin", "gender": "female", "city": "Gangneung", "hobby": "running", "tier": "silver", "tier_priority": 2, "success_rate": 0.68, "suspicion": 15, "joined_at": "2026-05-25T10:15:00", "blacklist": []},
+    {"id": "u006", "name": "Leo", "gender": "male", "city": "Seoul", "hobby": "basketball", "tier": "gold", "tier_priority": 3, "success_rate": 0.88, "suspicion": 5, "joined_at": "2026-05-28T14:40:00", "blacklist": ["u007"]},
+    {"id": "u007", "name": "Yuna", "gender": "female", "city": "Busan", "hobby": "painting", "tier": "basic", "tier_priority": 1, "success_rate": 0.45, "suspicion": 42, "joined_at": "2026-06-01T11:05:00", "blacklist": []},
+    {"id": "u008", "name": "Ian", "gender": "male", "city": "Jeju", "hobby": "running", "tier": "silver", "tier_priority": 2, "success_rate": 0.59, "suspicion": 95, "joined_at": "2026-06-03T16:22:00", "blacklist": []},
+    {"id": "u009", "name": "Yoonjae", "gender": "male", "city": "Incheon", "hobby": "jazz", "tier": "basic", "tier_priority": 1, "success_rate": 0.22, "suspicion": 88, "joined_at": "2026-06-04T10:00:00", "blacklist": ["u001", "u010"]},
+    {"id": "u010", "name": "Guanwook", "gender": "male", "city": "Gwangju", "hobby": "football", "tier": "gold", "tier_priority": 3, "success_rate": 0.85, "suspicion": 12, "joined_at": "2026-06-05T09:15:00", "blacklist": []},
+    {"id": "u011", "name": "Jiwon", "gender": "female", "city": "Seoul", "hobby": "oil_painting", "tier": "silver", "tier_priority": 2, "success_rate": 0.61, "suspicion": 34, "joined_at": "2026-06-05T14:30:00", "blacklist": ["u009"]}
   ],
   "relationships": [
-    {
-      "from": "u001",
-      "to": "u002",
-      "type": "best_friend"
-    },
-    {
-      "from": "u002",
-      "to": "u004",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u004",
-      "to": "u003",
-      "type": "scam_partner"
-    },
-    {
-      "from": "u005",
-      "to": "u007",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u006",
-      "to": "u008",
-      "type": "scam_partner"
-    },
-    {
-      "from": "u009",
-      "to": "u002",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u009",
-      "to": "u010",
-      "type": "scam_partner"
-    },
-    {
-      "from": "u010",
-      "to": "u006",
-      "type": "best_friend"
-    },
-    {
-      "from": "u011",
-      "to": "u009",
-      "type": "scam_partner"
-    }
+    {"from": "u001", "to": "u002", "type": "best_friend"},
+    {"from": "u002", "to": "u004", "type": "ex_partner"},
+    {"from": "u004", "to": "u003", "type": "scam_partner"},
+    {"from": "u005", "to": "u007", "type": "ex_partner"},
+    {"from": "u006", "to": "u008", "type": "scam_partner"},
+    {"from": "u009", "to": "u002", "type": "ex_partner"},
+    {"from": "u009", "to": "u010", "type": "scam_partner"},
+    {"from": "u010", "to": "u006", "type": "best_friend"},
+    {"from": "u011", "to": "u009", "type": "scam_partner"}
   ]
 }

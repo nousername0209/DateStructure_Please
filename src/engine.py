@@ -65,6 +65,10 @@ class MatchmakingEngine:
             raise ValueError(f"Profile {profile_id} not found!")
         return profile
 
+    def is_same_gender_pair(self, first: dict, second: dict) -> bool:
+        """두 프로필의 gender 값이 같으면 동성 매칭으로 판단합니다."""
+        return first.get("gender") == second.get("gender")
+
     def analyze_pair(
         self,
         first_id: str,
@@ -85,7 +89,9 @@ class MatchmakingEngine:
         hobby_distance = self.hobbies.distance(first["hobby"], second["hobby"])
         travel_distance = self.map_graph.shortest_distance(first["city"], second["city"])
 
-        if forbidden_path is not None:
+        if self.is_same_gender_pair(first, second):
+            score = 0
+        elif forbidden_path is not None:
             score = 0
         else:
             score = 100
@@ -121,6 +127,14 @@ class MatchmakingEngine:
             hobby_distance_limit=hobby_distance_limit,
         )
 
+        if self.is_same_gender_pair(first, second):
+            self.event_queue.enqueue("warning_print")
+            return MatchResult(
+                False,
+                0,
+                ["동성끼리의 매칭이므로 거부해야 합니다."],
+            )
+
         if analysis.forbidden_path is not None:
             self.event_queue.enqueue("warning_print")
             return MatchResult(
@@ -130,11 +144,11 @@ class MatchmakingEngine:
             )
 
         if analysis.hobby_distance > hobby_distance_limit:
-            penalty = (analysis.hobby_distance - hobby_distance_limit) * 10
+            penalty = (analysis.hobby_distance - hobby_distance_limit) * self.PENALTY_HOBBY
             reasons.append(f"취미가 맞지 않음. 벌점 부과 : -{penalty}")
 
         if analysis.travel_distance > long_distance_limit:
-            penalty = int((analysis.travel_distance - long_distance_limit) * 5)
+            penalty = int((analysis.travel_distance - long_distance_limit) * self.PENALTY_TRAVEL)
             reasons.append(f"거리가 너무 멂. 벌점 부과 : -{penalty}")
 
         accepted = analysis.score >= self.PASS_SCORE

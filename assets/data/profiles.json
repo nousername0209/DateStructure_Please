@@ -2,7 +2,8 @@
   "profiles": [
     {
       "id": "u001",
-      "name": "Mina",
+      "name": "Mina (female)",
+      "gender": "female",
       "city": "Seoul",
       "hobby": "football",
       "tier": "gold",
@@ -14,7 +15,8 @@
     },
     {
       "id": "u002",
-      "name": "Jun",
+      "name": "Jun (male)",
+      "gender": "male",
       "city": "Busan",
       "hobby": "jazz",
       "tier": "silver",
@@ -26,7 +28,8 @@
     },
     {
       "id": "u003",
-      "name": "Ara",
+      "name": "Ara (female)",
+      "gender": "female",
       "city": "Daejeon",
       "hobby": "basketball",
       "tier": "gold",
@@ -38,7 +41,8 @@
     },
     {
       "id": "u004",
-      "name": "Theo",
+      "name": "Theo (male)",
+      "gender": "male",
       "city": "Jeju",
       "hobby": "oil_painting",
       "tier": "basic",
@@ -47,10 +51,11 @@
       "suspicion": 86,
       "joined_at": "2026-05-22T21:10:00",
       "blacklist": []
-    }, 
+    },
     {
       "id": "u005",
-      "name": "Sujin",
+      "name": "Sujin (female)",
+      "gender": "female",
       "city": "Gangneung",
       "hobby": "running",
       "tier": "silver",
@@ -62,7 +67,8 @@
     },
     {
       "id": "u006",
-      "name": "Leo",
+      "name": "Leo (male)",
+      "gender": "male",
       "city": "Seoul",
       "hobby": "basketball",
       "tier": "gold",
@@ -74,7 +80,8 @@
     },
     {
       "id": "u007",
-      "name": "Yuna",
+      "name": "Yuna (female)",
+      "gender": "female",
       "city": "Busan",
       "hobby": "painting",
       "tier": "basic",
@@ -86,7 +93,8 @@
     },
     {
       "id": "u008",
-      "name": "Ian",
+      "name": "Ian (male)",
+      "gender": "male",
       "city": "Jeju",
       "hobby": "running",
       "tier": "silver",
@@ -98,7 +106,8 @@
     },
     {
       "id": "u009",
-      "name": "Yoonjae",
+      "name": "Yoonjae (male)",
+      "gender": "male",
       "city": "Incheon",
       "hobby": "jazz",
       "tier": "basic",
@@ -110,7 +119,8 @@
     },
     {
       "id": "u010",
-      "name": "Guanwook",
+      "name": "Guanwook (male)",
+      "gender": "male",
       "city": "Gwangju",
       "hobby": "football",
       "tier": "gold",
@@ -122,7 +132,8 @@
     },
     {
       "id": "u011",
-      "name": "Jiwon",
+      "name": "Jiwon (female)",
+      "gender": "female",
       "city": "Seoul",
       "hobby": "oil_painting",
       "tier": "silver",

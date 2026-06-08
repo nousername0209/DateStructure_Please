@@ -1,11 +1,12 @@
+from array import array
 from dataclasses import dataclass
+import itertools
 import math
 from pathlib import Path
+import random
+from collections import deque
 
 import pygame
-import itertools
-import random
-from collections import deque  # 프로젝트의 EventQueue를 못 찾을 경우를 대비한 가장 안전하고 엄밀한 내장 큐
 
 from src.engine import MatchAnalysis, MatchmakingEngine
 
@@ -13,15 +14,16 @@ from src.engine import MatchAnalysis, MatchmakingEngine
 WIDTH = 960
 HEIGHT = 640
 FPS = 60
-BG = (245, 242, 236)
-INK = (34, 36, 40)
-MUTED = (104, 108, 116)
+BG = (238, 235, 228)
+INK = (33, 36, 42)
+MUTED = (106, 110, 118)
 CARD = (255, 255, 252)
-LINE = (210, 204, 194)
-ACCENT = (38, 116, 92)
-WARN = (178, 61, 48)
-BLUE = (48, 86, 150)
-GRAY = (214, 214, 214)
+LINE = (207, 200, 190)
+ACCENT = (39, 125, 97)
+WARN = (184, 67, 52)
+BLUE = (50, 91, 158)
+GRAY = (218, 218, 218)
+SOFT_RED = (255, 235, 231)
 
 
 @dataclass(frozen=True)
@@ -34,85 +36,61 @@ class Button:
     def contains(self, pos: tuple[int, int]) -> bool:
         return self.rect.collidepoint(pos)
 
-    def draw(self, screen: pygame.Surface, font: pygame.font.Font) -> None:
-        pygame.draw.rect(screen, self.color, self.rect, border_radius=8)
+    def draw(self, screen: pygame.Surface, font: pygame.font.Font, mouse_pos: tuple[int, int]) -> None:
+        hovered = self.contains(mouse_pos)
+        color = tuple(min(255, c + 18) for c in self.color) if hovered else self.color
+        shadow = pygame.Rect(self.rect.x + 2, self.rect.y + 3, self.rect.width, self.rect.height)
+        pygame.draw.rect(screen, (0, 0, 0, 32), shadow, border_radius=8)
+        pygame.draw.rect(screen, color, self.rect, border_radius=8)
+        pygame.draw.rect(screen, (255, 255, 255, 72), self.rect, 1, border_radius=8)
         label = font.render(self.label, True, (255, 255, 255))
         screen.blit(label, label.get_rect(center=self.rect.center))
 
 
 class UIContext:
-    """Small object-oriented drawing surface for scene UI widgets."""
-
     def __init__(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         self.screen = screen
         self.fonts = fonts
         self.buttons: list[Button] = []
+        self.mouse_pos = pygame.mouse.get_pos()
 
-    def text(
-        self,
-        font_name: str,
-        text: str,
-        pos: tuple[int, int],
-        color: tuple[int, int, int],
-    ) -> None:
+    def text(self, font_name: str, text: str, pos: tuple[int, int], color: tuple[int, int, int]) -> None:
         self.screen.blit(self.fonts[font_name].render(text, True, color), pos)
 
-    def button(
-        self,
-        rect: pygame.Rect,
-        label: str,
-        action: str,
-        color: tuple[int, int, int],
-    ) -> Button:
+    def button(self, rect: pygame.Rect, label: str, action: str, color: tuple[int, int, int]) -> Button:
         button = Button(rect, label, action, color)
-        button.draw(self.screen, self.fonts["body"])
+        button.draw(self.screen, self.fonts["body"], self.mouse_pos)
         self.buttons.append(button)
         return button
 
     def scrim(self) -> None:
         overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((20, 20, 20, 120))
+        overlay.fill((20, 20, 20, 125))
         self.screen.blit(overlay, (0, 0))
 
-    def popup_frame(
-        self,
-        rect: pygame.Rect,
-        title: str,
-        color: tuple[int, int, int],
-        depth: int,
-        *,
-        fill: tuple[int, int, int] = CARD,
-    ) -> None:
-        shadow = pygame.Surface((rect.width + 18, rect.height + 18), pygame.SRCALPHA)
-        shadow.fill((0, 0, 0, 0))
-        pygame.draw.rect(shadow, (22, 24, 28, 70), shadow.get_rect(), border_radius=10)
-        self.screen.blit(shadow, (rect.x + 10 + depth * 2, rect.y + 12 + depth * 2))
-
-        pygame.draw.rect(self.screen, fill, rect, border_radius=8)
-        title_bar = pygame.Rect(rect.x, rect.y, rect.width, 54)
-        pygame.draw.rect(self.screen, (250, 242, 232), title_bar, border_top_left_radius=8, border_top_right_radius=8)
-        pygame.draw.line(self.screen, LINE, (rect.x, title_bar.bottom), (rect.right, title_bar.bottom), 2)
-        pygame.draw.rect(self.screen, color, rect, 3, border_radius=8)
-        self.text("popup_title", title, (rect.x + 24, rect.y + 16), color)
+    def popup_frame(self, rect: pygame.Rect, title: str, color: tuple[int, int, int], depth: int, *, fill: tuple[int, int, int] = CARD) -> None:
+        shadow = pygame.Surface((rect.width + 20, rect.height + 20), pygame.SRCALPHA)
+        pygame.draw.rect(shadow, (22, 24, 28, 64), shadow.get_rect(), border_radius=12)
+        self.screen.blit(shadow, (rect.x + 10 + depth * 3, rect.y + 12 + depth * 3))
+        pygame.draw.rect(self.screen, fill, rect, border_radius=10)
+        pygame.draw.rect(self.screen, color, rect, 3, border_radius=10)
+        pygame.draw.line(self.screen, LINE, (rect.x, rect.y + 58), (rect.right, rect.y + 58), 2)
+        self.text("popup_title", title, (rect.x + 24, rect.y + 18), color)
 
     def wrap_text(self, font_name: str, text: str, max_width: int) -> list[str]:
         font = self.fonts[font_name]
-        words = text.split(" ")
         lines: list[str] = []
-        current_line = ""
-
-        for word in words:
-            candidate = f"{current_line} {word}" if current_line else word
+        current = ""
+        for word in text.split(" "):
+            candidate = f"{current} {word}" if current else word
             if font.size(candidate)[0] <= max_width:
-                current_line = candidate
+                current = candidate
             else:
-                if current_line:
-                    lines.append(current_line)
-                current_line = word
-
-        if current_line:
-            lines.append(current_line)
-
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
         return lines
 
 
@@ -131,424 +109,177 @@ class UILayer:
 class DialoguePopup(UILayer):
     def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
         dialogue = scene.engine.dialogue.current
-        max_width = WIDTH - 184
-        text_lines = ui.wrap_text("body", dialogue.text, max_width - 48)
-        line_height = ui.fonts["body"].get_height() + 6
-
-        if dialogue.choices:
-            choice_section_height = len(dialogue.choices) * 60 + 16
-        else:
-            info_text = "선택지가 없습니다. ESC를 눌러 대화를 종료하거나 뒤로 가기 버튼을 누르세요." if scene.dialogue_history else "선택지가 없습니다. ESC를 눌러 대화를 종료하세요."
-            info_lines = ui.wrap_text("small", info_text, max_width - 48)
-            info_line_height = ui.fonts["small"].get_height() + 6
-            choice_section_height = len(info_lines) * info_line_height + 24
-
-        panel_height = 84 + len(text_lines) * line_height + choice_section_height + 40
-        panel_height = min(panel_height, HEIGHT - 80)
-
-        panel = pygame.Rect(92 + depth * 28, 86 + depth * 20, max_width, panel_height)
-        ui.popup_frame(panel, "Dialogue", BLUE, depth)
-        ui.button(pygame.Rect(panel.right - 116, panel.y + 14, 88, 34), "CLOSE", "close_dialogue", WARN)
-
-        text_lines = ui.wrap_text("body", dialogue.text, panel.width - 48)
-        line_y = panel.y + 84
-        for line in text_lines:
-            ui.text("body", line, (panel.x + 24, line_y), INK)
-            line_y += ui.fonts["body"].get_height() + 6
-
+        panel = pygame.Rect(92 + depth * 24, 86 + depth * 18, WIDTH - 184, 348)
+        ui.popup_frame(panel, "Briefing", BLUE, depth)
+        ui.button(pygame.Rect(panel.right - 118, panel.y + 14, 90, 34), "CLOSE", "close_dialogue", WARN)
+        y = panel.y + 86
+        for line in ui.wrap_text("body", dialogue.text, panel.width - 52):
+            ui.text("body", line, (panel.x + 26, y), INK)
+            y += ui.fonts["body"].get_height() + 6
         if scene.dialogue_history:
-            ui.button(pygame.Rect(panel.right - 212, panel.y + 14, 84, 34), "뒤로", "dialogue_back", WARN)
-
-        if dialogue.choices:
-            choice_y = line_y + 16
-            for index, choice in enumerate(dialogue.choices):
-                button_rect = pygame.Rect(panel.x + 24, choice_y, panel.width - 48, 48)
-                ui.button(button_rect, choice["label"], f"dialogue_choice_{index}", ACCENT)
-                choice_y += 60
-        else:
-            info_text = "선택지가 없습니다. ESC를 눌러 대화를 종료하거나 뒤로 가기 버튼을 누르세요." if scene.dialogue_history else "선택지가 없습니다. ESC를 눌러 대화를 종료하세요."
-            ui.text("small", info_text, (panel.x + 24, panel.bottom - 40), MUTED)
+            ui.button(pygame.Rect(panel.right - 214, panel.y + 14, 82, 34), "BACK", "dialogue_back", BLUE)
+        for index, choice in enumerate(dialogue.choices):
+            ui.button(pygame.Rect(panel.x + 26, y + 20 + index * 58, panel.width - 52, 44), choice["label"], f"dialogue_choice_{index}", ACCENT)
 
     def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
         for button in scene.buttons:
             if not button.contains(pos):
                 continue
+            scene._play_sound("click")
             if button.action == "close_dialogue":
                 scene.close_top_layer()
                 return True
-            if button.action.startswith("dialogue_choice"):
-                scene.dialogue_history.append(scene.engine.dialogue.current_id)
-                choice_index = int(button.action.split("_")[-1])
-                scene.engine.dialogue.choose(choice_index)
-                return True
             if button.action == "dialogue_back":
                 scene.go_back_dialogue()
+                return True
+            if button.action.startswith("dialogue_choice"):
+                scene.dialogue_history.append(scene.engine.dialogue.current_id)
+                scene.engine.dialogue.choose(int(button.action.split("_")[-1]))
                 return True
         return True
 
 
 class AssetPopup(UILayer):
-    # 클래스 변수로 선언. 팝업을 닫고 다시 열어도 연산 결과(위상)가 영구히 보존됨
-    _layout_cache: dict[str, dict[str, tuple[int, int]]] = {}
-
     def __init__(self, kind: str) -> None:
         self.kind = kind
 
     def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
-        title_map = {
-            "tree": "동적 렌더링: 취미 트리",
-            "graph_rel": "동적 렌더링: 인물 관계망 (Directed Graph)",
-            "graph_city": "물리 기반 렌더링: 대한민국 도시망",
-        }
-        title = title_map.get(self.kind, "Asset")
-        rect = pygame.Rect(112 + depth * 28, 74 + depth * 22, WIDTH - 224, HEIGHT - 142)
-        ui.popup_frame(rect, title, ACCENT, depth)
-
-        content_rect = pygame.Rect(rect.x + 32, rect.y + 74, rect.width - 64, rect.height - 104)
-
-        if self.kind == "graph_city":
-            self._draw_map_graph(scene, ui, content_rect)
-        elif self.kind == "tree":
-            self._draw_hobby_tree(scene, ui, content_rect)
+        titles = {"tree": "Hobby Tree", "graph_rel": "Relationship Graph", "graph_city": "City Distance Graph"}
+        rect = pygame.Rect(96 + depth * 24, 70 + depth * 18, WIDTH - 192, HEIGHT - 130)
+        ui.popup_frame(rect, titles.get(self.kind, "Graph"), ACCENT, depth)
+        area = pygame.Rect(rect.x + 36, rect.y + 82, rect.width - 72, rect.height - 128)
+        if self.kind == "tree":
+            self._draw_hobby_tree(scene, ui, area)
         elif self.kind == "graph_rel":
-            self._draw_rel_graph(scene, ui, content_rect) # 관계도 렌더러 활성화
+            self._draw_relationship_graph(scene, ui, area)
         else:
-            ui.text("heading", "해당 그래프 렌더러는 아직 준비되지 않았습니다.", (rect.x + 28, rect.y + 92), WARN)
-
+            self._draw_city_graph(scene, ui, area)
         ui.button(pygame.Rect(rect.right - 132, rect.y + 14, 104, 34), "CLOSE", "close_asset", WARN)
-        ui.text("small", "ESC를 눌러 닫기", (rect.x + 28, rect.bottom - 32), MUTED)
+        ui.text("small", "ESC closes this panel", (rect.x + 28, rect.bottom - 32), MUTED)
 
-    def _compute_physics_layout(self, map_data: dict, area: pygame.Rect) -> dict[str, tuple[int, int]]:
-        cities = list(map_data.keys())
-        if not cities: return {}
-
-        # 난수 생성기의 시드(Seed)를 42로 고정
-        random.seed(42)
-
-        center_x, center_y = area.width / 2, area.height / 2
-        positions = {city: [center_x + random.randint(-50, 50), center_y + random.randint(-50, 50)] for city in cities}
-        velocities = {city: [0.0, 0.0] for city in cities}
-
-        max_dist = max([d for edges in map_data.values() for _, d in edges] + [1])
-        SCALE = (min(area.width, area.height) * 0.8) / max_dist
-
-        ITERATIONS = 200      # 진동이 멈출 때까지 조금 더 충분히 연산
-        REPULSION = 20000.0   # 척력을 키워서 노드들이 절대 겹치지 않게 강제함
-        SPRING_K = 0.1
-        DAMPING = 0.85
-
-        for _ in range(ITERATIONS):
-            forces = {city: [0.0, 0.0] for city in cities}
-
-            for i in range(len(cities)):
-                for j in range(i + 1, len(cities)):
-                    c1, c2 = cities[i], cities[j]
-                    p1, p2 = positions[c1], positions[c2]
-                    dx, dy = p1[0] - p2[0], p1[1] - p2[1]
-                    dist = math.hypot(dx, dy)
-                    if dist == 0: dist, dx, dy = 0.1, random.random(), random.random()
-                    
-                    force = REPULSION / (dist * dist)
-                    forces[c1][0] += (dx / dist) * force
-                    forces[c1][1] += (dy / dist) * force
-                    forces[c2][0] -= (dx / dist) * force
-                    forces[c2][1] -= (dy / dist) * force
-
-            drawn_edges = set()
-            for city, edges in map_data.items():
-                for neighbor, distance in edges:
-                    edge_pair = tuple(sorted([city, neighbor]))
-                    if edge_pair not in drawn_edges:
-                        drawn_edges.add(edge_pair)
-                        p1, p2 = positions[city], positions[neighbor]
-                        dx, dy = p2[0] - p1[0], p2[1] - p1[1]
-                        dist = math.hypot(dx, dy)
-                        if dist == 0: dist = 0.1
-                        
-                        ideal_dist = distance * SCALE
-                        force = (dist - ideal_dist) * SPRING_K
-                        forces[city][0] += (dx / dist) * force
-                        forces[city][1] += (dy / dist) * force
-                        forces[neighbor][0] -= (dx / dist) * force
-                        forces[neighbor][1] -= (dy / dist) * force
-
-            for city in cities:
-                velocities[city][0] = (velocities[city][0] + forces[city][0]) * DAMPING
-                velocities[city][1] = (velocities[city][1] + forces[city][1]) * DAMPING
-                positions[city][0] += velocities[city][0]
-                positions[city][1] += velocities[city][1]
-
-        # 시드 고정을 해제하여 다른 랜덤 로직(매칭 큐 등)에 영향을 주지 않도록 복구
-        random.seed()
-
-        # 여기서부터 도화지(화면)를 가로세로 꽉 채우도록 좌표를 변환함
-        min_x = min(p[0] for p in positions.values())
-        max_x = max(p[0] for p in positions.values())
-        min_y = min(p[1] for p in positions.values())
-        max_y = max(p[1] for p in positions.values())
-
-        layout_w = max_x - min_x or 1
-        layout_h = max_y - min_y or 1
-
-        # 화면 가장자리에서 글자가 잘리지 않도록 넉넉한 패딩(60px) 확보
-        pad = 60
-        avail_w = area.width - pad * 2
-        avail_h = area.height - pad * 2
-
-        center_x = area.x + area.width / 2
-        center_y = area.y + area.height / 2
-
-        final_coords = {}
-        for city, p in positions.items():
-            # X축과 Y축을 독립적으로(비등방성) 화면 넓이 비율에 맞게 곱해버림
-            nx = (p[0] - min_x) / layout_w - 0.5
-            ny = (p[1] - min_y) / layout_h - 0.5
-            final_coords[city] = (
-                int(center_x + nx * avail_w),
-                int(center_y + ny * avail_h)
-            )
-            
-        return final_coords
-
-    def _draw_map_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
-        map_data = scene.engine.map_graph.adjacency
-        
-        # 영구 캐시에 데이터가 없으면 딱 한 번만 계산하여 저장
-        if "map" not in AssetPopup._layout_cache:
-            AssetPopup._layout_cache["map"] = self._compute_physics_layout(map_data, area)
-            
-        pixel_coords = AssetPopup._layout_cache["map"]
-
-        drawn_edges = set()
-        for city, edges in map_data.items():
+    def _draw_city_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
+        graph = scene.engine.map_graph.adjacency
+        cities = list(graph.keys())
+        if not cities:
+            return
+        radius = min(area.width, area.height) // 2 - 44
+        coords = {}
+        for i, city in enumerate(cities):
+            angle = 2 * math.pi * i / len(cities) - math.pi / 2
+            coords[city] = (int(area.centerx + math.cos(angle) * radius), int(area.centery + math.sin(angle) * radius))
+        seen = set()
+        for city, edges in graph.items():
             for neighbor, distance in edges:
-                edge_pair = tuple(sorted([city, neighbor]))
-                if edge_pair not in drawn_edges:
-                    drawn_edges.add(edge_pair)
-                    
-                    p1, p2 = pixel_coords[city], pixel_coords.get(neighbor)
-                    if p1 and p2:
-                        pygame.draw.line(ui.screen, LINE, p1, p2, 4)
-                        
-                        mid_x, mid_y = (p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2
-                        dist_text = f"{distance}km"
-                        text_surf = ui.fonts["small"].render(dist_text, True, BLUE)
-                        text_rect = text_surf.get_rect(center=(mid_x, mid_y))
-                        
-                        bg_rect = text_rect.inflate(8, 4)
-                        pygame.draw.rect(ui.screen, CARD, bg_rect, border_radius=4)
-                        ui.screen.blit(text_surf, text_rect)
-
-        for city, pos in pixel_coords.items():
+                edge = tuple(sorted((city, neighbor)))
+                if edge in seen:
+                    continue
+                seen.add(edge)
+                p1, p2 = coords[city], coords[neighbor]
+                pygame.draw.line(ui.screen, LINE, p1, p2, 3)
+                mid = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
+                label = ui.fonts["small"].render(str(distance), True, BLUE)
+                pygame.draw.rect(ui.screen, CARD, label.get_rect(center=mid).inflate(8, 4), border_radius=4)
+                ui.screen.blit(label, label.get_rect(center=mid))
+        for city, pos in coords.items():
             pygame.draw.circle(ui.screen, ACCENT, pos, 18)
             pygame.draw.circle(ui.screen, CARD, pos, 18, 3)
-            
-            text_surf = ui.fonts["body"].render(city, True, INK)
-            text_rect = text_surf.get_rect(center=(pos[0], pos[1] + 28))
-            bg_rect = text_rect.inflate(8, 4)
-            pygame.draw.rect(ui.screen, CARD, bg_rect, border_radius=4)
-            ui.screen.blit(text_surf, text_rect)
+            label = ui.fonts["small"].render(city, True, INK)
+            ui.screen.blit(label, label.get_rect(center=(pos[0], pos[1] + 32)))
 
-    # 인물 관계망 렌더러 (Circular Layout)
-    def _draw_rel_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
-        adj = scene.engine.relationships.adjacency
-        nodes = list(adj.keys())
+    def _draw_relationship_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
+        nodes = list(scene.engine.relationships.adjacency.keys())
         if not nodes:
             return
-
-        # JSON에서 관계 타입(Type)을 읽어와 영구 캐싱
-        if "rel_types" not in AssetPopup._layout_cache:
-            AssetPopup._layout_cache["rel_types"] = {}
-            try:
-                import json
-                with open(scene.asset_dir / "profiles.json", "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    for r in data.get("relationships", []):
-                        AssetPopup._layout_cache["rel_types"][(r["from"], r["to"])] = r["type"]
-            except Exception:
-                pass # 파일 로드 실패 시 무시 (기본 색상 적용)
-
-        # 2. 색상 팔레트
-        color_map = {
-            "ex_partner": WARN,              # 치정/전연인 (빨강)
-            "scam_partner": BLUE,            # 사기 (파랑)
-            "best_friend": ACCENT,           # 절친 (초록)
-            "default": MUTED                 # 기타 (회색)
-        }
-
-        center_x, center_y = area.x + area.width // 2, area.y + area.height // 2
-        # 범례가 들어갈 공간을 위해 원형 반지름을 살짝 줄이고 위로 살짝 올림
-        radius = min(area.width, area.height) // 2 - 50
-        center_y -= 10 
-
-        # 노드 원형 배치
-        pixel_coords = {}
+        radius = min(area.width, area.height) // 2 - 58
+        coords = {}
         for i, node in enumerate(nodes):
-            angle = i * (2 * math.pi / len(nodes)) - (math.pi / 2)
-            pixel_coords[node] = (int(center_x + radius * math.cos(angle)), int(center_y + radius * math.sin(angle)))
-
-        # 간선 및 화살표 그리기
-        for source, targets in adj.items():
-            p1 = pixel_coords[source]
+            angle = 2 * math.pi * i / len(nodes) - math.pi / 2
+            coords[node] = (int(area.centerx + math.cos(angle) * radius), int(area.centery + math.sin(angle) * radius))
+        for source, targets in scene.engine.relationships.adjacency.items():
             for target in targets:
-                p2 = pixel_coords[target]
-                
-                rel_type = AssetPopup._layout_cache["rel_types"].get((source, target), "default")
-                rel_color = color_map.get(rel_type, color_map["default"])
-                
-                dx = p2[0] - p1[0]
-                dy = p2[1] - p1[1]
-                dist = math.hypot(dx, dy)
-                
-                if dist > 0:
-                    pygame.draw.line(ui.screen, rel_color, p1, p2, 2)
-                    
-                    # 도착지 노드 반지름(20) 바깥에서 화살표 시작
-                    offset = 22 
-                    if dist > offset:
-                        ux, uy = dx / dist, dy / dist # 단위 방향 벡터
-                        
-                        # 화살표 끝점 (노드 테두리에 딱 닿는 지점)
-                        tip_x = p2[0] - ux * offset
-                        tip_y = p2[1] - uy * offset
-                        
-                        # 화살표 크기 디자인 파라미터
-                        arrow_len = 14
-                        arrow_half_width = 7
-                        
-                        # 화살표 밑변의 중심점
-                        base_x = tip_x - ux * arrow_len
-                        base_y = tip_y - uy * arrow_len
-                        
-                        # 회전 변환 행렬 적용 (직교 벡터)
-                        nx, ny = -uy, ux
-                        
-                        # 삼각형 양 날개 좌표 도출
-                        left_x = base_x + nx * arrow_half_width
-                        left_y = base_y + ny * arrow_half_width
-                        right_x = base_x - nx * arrow_half_width
-                        right_y = base_y - ny * arrow_half_width
-                        
-                        # 파이게임 다각형(Polygon) 렌더러로 완벽한 삼각형 그리기
-                        pygame.draw.polygon(ui.screen, rel_color, [(tip_x, tip_y), (left_x, left_y), (right_x, right_y)])
+                p1, p2 = coords[source], coords[target]
+                pygame.draw.line(ui.screen, WARN, p1, p2, 2)
+                self._draw_arrow_head(ui.screen, p1, p2, WARN)
+        for node, pos in coords.items():
+            pygame.draw.circle(ui.screen, CARD, pos, 22)
+            pygame.draw.circle(ui.screen, INK, pos, 22, 2)
+            label = ui.fonts["small"].render(node, True, INK)
+            ui.screen.blit(label, label.get_rect(center=pos))
 
-        # 노드(사람) 그리기
-        for node, pos in pixel_coords.items():
-            pygame.draw.circle(ui.screen, CARD, pos, 20)
-            pygame.draw.circle(ui.screen, INK, pos, 20, 2) # 사람 테두리는 일관되게 진회색 유지
-            
-            text_surf = ui.fonts["small"].render(node, True, INK)
-            text_rect = text_surf.get_rect(center=pos)
-            ui.screen.blit(text_surf, text_rect)
-
-        # 4. 화면 좌측 하단에 친절한 범례(Legend) UI 추가
-        legend_x = area.x + 10
-        legend_y = area.bottom - 110
-        
-        ui.text("body", "[ 관계망 범례 ]", (legend_x, legend_y), INK)
-        legend_y += 25
-        
-        legend_items = [
-            ("ex bf/gf (치정)", WARN), 
-            ("scam (사기)", BLUE), 
-            ("best friend (절친)", ACCENT)
-        ]
-        
-        for label, color in legend_items:
-            # 범례 아이콘 (선과 점)
-            pygame.draw.line(ui.screen, color, (legend_x, legend_y + 8), (legend_x + 20, legend_y + 8), 3)
-            pygame.draw.circle(ui.screen, color, (legend_x + 15, legend_y + 8), 5)
-            
-            # 범례 텍스트
-            ui.text("small", label, (legend_x + 30, legend_y), INK)
-            legend_y += 20
-            
-        ui.text("small", "* 선 끝의 둥근 점은 관계가 향하는 대상을 의미합니다.", (legend_x, legend_y + 5), MUTED)
+    def _draw_arrow_head(self, screen: pygame.Surface, start: tuple[int, int], end: tuple[int, int], color: tuple[int, int, int]) -> None:
+        dx, dy = end[0] - start[0], end[1] - start[1]
+        dist = math.hypot(dx, dy)
+        if dist == 0:
+            return
+        ux, uy = dx / dist, dy / dist
+        tip = (end[0] - ux * 24, end[1] - uy * 24)
+        base = (tip[0] - ux * 13, tip[1] - uy * 13)
+        nx, ny = -uy, ux
+        pygame.draw.polygon(screen, color, [tip, (base[0] + nx * 7, base[1] + ny * 7), (base[0] - nx * 7, base[1] - ny * 7)])
 
     def _draw_hobby_tree(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
         root = scene.engine.hobbies.root
-        if not root:
+        if root is None:
             return
-
         max_depth = max(node.depth for node in scene.engine.hobbies.nodes.values())
-        y_step = area.height // (max_depth + 1) if max_depth > 0 else 0
+        y_step = area.height // (max_depth + 1) if max_depth else 0
 
-        def draw_node(node, x_min, x_max, current_y):
+        def draw_node(node, x_min: int, x_max: int, y: int) -> None:
             x = (x_min + x_max) // 2
-            y = current_y
-
             if node.children:
-                child_width = (x_max - x_min) // len(node.children)
+                width = max(1, (x_max - x_min) // len(node.children))
                 for i, child in enumerate(node.children):
-                    child_x_min = x_min + i * child_width
-                    child_x_max = child_x_min + child_width
-                    child_x = (child_x_min + child_x_max) // 2
-                    child_y = current_y + y_step
-                    
+                    child_min = x_min + i * width
+                    child_max = child_min + width
+                    child_x = (child_min + child_max) // 2
+                    child_y = y + y_step
                     pygame.draw.line(ui.screen, LINE, (x, y), (child_x, child_y), 3)
-                    draw_node(child, child_x_min, child_x_max, child_y)
-
-            pygame.draw.rect(ui.screen, CARD, (x - 40, y - 15, 80, 30), border_radius=5)
-            pygame.draw.rect(ui.screen, ACCENT, (x - 40, y - 15, 80, 30), 2, border_radius=5)
-            
-            text_surf = ui.fonts["small"].render(node.name, True, INK)
-            text_rect = text_surf.get_rect(center=(x, y))
-            ui.screen.blit(text_surf, text_rect)
-
-        draw_node(root, area.x, area.right, area.y + 30)
+                    draw_node(child, child_min, child_max, child_y)
+            node_rect = pygame.Rect(x - 48, y - 18, 96, 36)
+            pygame.draw.rect(ui.screen, CARD, node_rect, border_radius=6)
+            pygame.draw.rect(ui.screen, ACCENT, node_rect, 2, border_radius=6)
+            label = ui.fonts["small"].render(node.name, True, INK)
+            ui.screen.blit(label, label.get_rect(center=node_rect.center))
+        draw_node(root, area.x, area.right, area.y + 28)
 
     def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
         for button in scene.buttons:
             if button.contains(pos) and button.action == "close_asset":
+                scene._play_sound("click")
                 scene.close_top_layer()
                 return True
         return True
 
-class PlayScene:
-    """Pygame play loop for pair review and contradiction rejection."""
 
+class PlayScene:
     def __init__(self, engine: MatchmakingEngine) -> None:
         self.engine = engine
         self.profiles = self.engine.priority_profiles()
-
-        # --- 핵심 추가 로직 --- 임호준
-        # 1. profiles에 있는 모든 사람들의 가능한 모든 2명 짝(조합)을 리스트로 만듦
         self.match_queue = list(itertools.combinations(self.profiles, 2))
-        # 2. 플레이할 때마다 매칭 순서가 달라지도록 섞음 (난수화)
         random.shuffle(self.match_queue)
-        # ------------------------
-        
         self.pair_index = 0
-        self.game_state = "playing" # 이 줄을 추가 ("playing", "game_over", "clear" 상태를 가질 예정) -호준
-        # 기획서 요건을 충족하는 UI 이벤트 큐(Queue) 파이프라인 생성
+        self.game_state = "playing"
         self.message_queue = deque()
         self.buttons: list[Button] = []
         self.notice_text = ""
         self.notice_timer = 0.0
         self.dialogue_history: list[str] = []
-        self.tree_image: pygame.Surface | None = None
-        self.graph_rel_image: pygame.Surface | None = None
-        self.graph_city_image: pygame.Surface | None = None
         self.asset_dir = Path(__file__).resolve().parents[1] / "assets" / "data"
+        self.sounds: dict[str, pygame.mixer.Sound] = {}
         self.engine.ui_stack.clear()
         self.engine.ui_stack.push(DialoguePopup())
 
     def run(self) -> None:
         pygame.init()
+        try:
+            pygame.mixer.init(frequency=44100, size=-16, channels=1)
+            self.sounds = {"click": self._make_tone(520, 0.045, 0.22), "success": self._make_tone(740, 0.08, 0.25), "error": self._make_tone(190, 0.12, 0.28)}
+        except pygame.error:
+            self.sounds = {}
         screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("DateStructure, Please")
         clock = pygame.time.Clock()
-        self.tree_image = pygame.image.load(str(self.asset_dir / "tree.png")).convert_alpha()
-        self.graph_rel_image = pygame.image.load(str(self.asset_dir / "graph_rel.png")).convert_alpha()
-        self.graph_city_image = pygame.image.load(str(self.asset_dir / "graph_city.png")).convert_alpha()
-        fonts = {
-            "title": pygame.font.SysFont(["malgungothic", 'applegothic'], 34),
-            "heading": pygame.font.SysFont(["malgungothic", 'applegothic'], 24),
-            "body": pygame.font.SysFont(["malgungothic",'applegothic'], 18),
-            "small": pygame.font.SysFont(["malgungothic",'applegothic'], 15),
-            "popup_title": pygame.font.SysFont(["malgungothic",'applegothic'], 20),
-        }
-
+        fonts = {"title": pygame.font.SysFont(["malgungothic", "applegothic"], 34), "heading": pygame.font.SysFont(["malgungothic", "applegothic"], 24), "body": pygame.font.SysFont(["malgungothic", "applegothic"], 18), "small": pygame.font.SysFont(["malgungothic", "applegothic"], 15), "popup_title": pygame.font.SysFont(["malgungothic", "applegothic"], 20)}
         running = True
         while running:
             dt = clock.tick(FPS) / 1000
@@ -559,17 +290,27 @@ class PlayScene:
                     running = self._handle_escape()
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     self._handle_click(event.pos)
-
             self._update(dt)
             self._draw(screen, fonts)
             pygame.display.flip()
-
         pygame.quit()
 
+    def _make_tone(self, frequency: int, duration: float, volume: float) -> pygame.mixer.Sound:
+        sample_rate = 44100
+        samples = array("h")
+        for i in range(int(sample_rate * duration)):
+            fade = 1 - i / max(1, int(sample_rate * duration))
+            value = int(32767 * volume * fade * math.sin(2 * math.pi * frequency * i / sample_rate))
+            samples.append(value)
+        return pygame.mixer.Sound(buffer=samples.tobytes())
+
+    def _play_sound(self, name: str) -> None:
+        sound = self.sounds.get(name)
+        if sound is not None:
+            sound.play()
+
     def _current_pair(self) -> tuple[dict, dict]:
-        # 기존의 i, i+2 억지 공식을 버리고, 우리가 만든 매칭 대기열(queue)에서 순서대로 꺼내오기 - by 호준
-        pair = self.match_queue[self.pair_index % len(self.match_queue)]
-        return pair[0], pair[1]
+        return self.match_queue[self.pair_index % len(self.match_queue)]
 
     def _analysis(self) -> MatchAnalysis:
         first, second = self._current_pair()
@@ -583,39 +324,20 @@ class PlayScene:
         if isinstance(top_layer, UILayer):
             top_layer.handle_click(self, pos)
             return
-
         for button in self.buttons:
-            if button.contains(pos):
-                if button.action == "restart":      
-                    self._restart_game()
-                elif button.action == "reject":
-                    self._reject_pair()
-                elif button.action == "next":
-                    first, second = self._current_pair()
-                    result = self.engine.evaluate_match(first["id"], second["id"])
-                    
-                    if result.accepted:
-                        self.message_queue.append(f"승인 성공! 매칭 점수: {result.score}점")
-                    else:
-                        self.engine.reputation = max(0, self.engine.reputation - 10)
-                        reason_str = " / ".join(result.reasons)
-                        self.message_queue.append(f"오심! 부적합 매칭 승인. 사유: {reason_str}")
-
-                    # 수정됨: % 연산 제거 및 상태 검사 추가 - 호준
-                    self.pair_index += 1
-                    #self.notice_timer = 3.0
-                    self._update_game_state()
-
-                elif button.action == "tree":
-                    self.engine.ui_stack.push(AssetPopup("tree"))
-                    self.notice_text = ""
-                elif button.action == "graph_rel":
-                    self.engine.ui_stack.push(AssetPopup("graph_rel"))
-                    self.notice_text = ""
-                elif button.action == "graph_city":
-                    self.engine.ui_stack.push(AssetPopup("graph_city"))
-                    self.notice_text = ""
-                return
+            if not button.contains(pos):
+                continue
+            self._play_sound("click")
+            if button.action == "restart":
+                self._restart_game()
+            elif button.action == "reject":
+                self._reject_pair()
+            elif button.action == "next":
+                self._approve_pair()
+            elif button.action in {"tree", "graph_rel", "graph_city"}:
+                self.engine.ui_stack.push(AssetPopup(button.action))
+                self.notice_text = ""
+            return
 
     def _handle_escape(self) -> bool:
         top_layer = self.engine.ui_stack.peek()
@@ -623,124 +345,152 @@ class PlayScene:
             return top_layer.on_escape(self)
         return False
 
+    def _approve_pair(self) -> None:
+        first, second = self._current_pair()
+        result = self.engine.evaluate_match(first["id"], second["id"])
+        if result.accepted:
+            self._play_sound("success")
+            self.message_queue.append(f"승인 성공! 매칭 점수: {result.score}점")
+        else:
+            self._play_sound("error")
+            self.engine.reputation = max(0, self.engine.reputation - 10)
+            self.message_queue.append(f"오심! 부적합 매칭 승인. 사유: {' / '.join(result.reasons)}")
+        self.pair_index += 1
+        self._update_game_state()
+
     def _reject_pair(self) -> None:
         first, second = self._current_pair()
         result = self.engine.evaluate_match(first["id"], second["id"])
-        
         if not result.accepted:
-            self.message_queue.append(f"정확한 판단입니다! 사유: {result.reasons[0]}") # Enqueue
+            self._play_sound("success")
+            self.message_queue.append(f"정확한 판단입니다! 사유: {result.reasons[0]}")
         else:
+            self._play_sound("error")
             self.engine.reputation = max(0, self.engine.reputation - 10)
-            self.message_queue.append(f"오심입니다! 적합한 매칭을 거절했습니다. (점수: {result.score}점)") # Enqueue
-
-        # 수정: % len(self.match_queue) 를 빼버려서 무한루프를 막기 - 호준
-        self.pair_index += 1 
-        #self.notice_timer = 3.0
-        self._update_game_state() # 매 판정이 끝날 때마다 상태 검사
+            self.message_queue.append(f"오심입니다! 적합한 매칭을 거절했습니다. 점수: {result.score}점")
+        self.pair_index += 1
+        self._update_game_state()
 
     def close_top_layer(self) -> None:
         if isinstance(self.engine.ui_stack.peek(), UILayer):
             self.engine.ui_stack.pop()
 
     def _update(self, dt: float) -> None:
-        # 1. 화면에 떠 있는 메시지가 있다면 일단 타이머를 줄입니다.
         if self.notice_timer > 0:
             self.notice_timer = max(0, self.notice_timer - dt)
             if self.notice_timer == 0:
-                self.notice_text = "" 
-
-        # 2. UX(조작감) 개선 로직: 큐에 새 이벤트(메시지)가 들어왔다면 즉시 모조리 꺼냄
-        while len(self.message_queue) > 0:
-            # 큐에서 순서대로 빼내되, 가장 최신(마지막) 이벤트가 notice_text를 차지하게 됨
-            self.notice_text = self.message_queue.popleft() 
-            self.notice_timer = 3.0 # 타이머를 즉시 3초로 초기화 (기존 대기시간 무시)
+                self.notice_text = ""
+        while self.message_queue:
+            self.notice_text = self.message_queue.popleft()
+            self.notice_timer = 3.0
 
     def _draw(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         analysis = self._analysis()
         screen.fill(BG)
+        self._draw_background(screen)
         ui = UIContext(screen, fonts)
-
-        ui.text("title", "DateStructure, Please", (40, 30), INK)
-        ui.text("body", "Moderator review desk", (44, 72), MUTED)
+        ui.text("title", "DateStructure, Please", (40, 26), INK)
+        ui.text("body", "Moderator review desk", (44, 68), MUTED)
         self._draw_reputation(ui)
-        self._draw_profile_card(ui, analysis.first, pygame.Rect(46, 128, 350, 250))
-        self._draw_profile_card(ui, analysis.second, pygame.Rect(564, 128, 350, 250))
+        self._draw_profile_card(ui, analysis.first, pygame.Rect(42, 116, 366, 270))
+        self._draw_profile_card(ui, analysis.second, pygame.Rect(552, 116, 366, 270))
+        self._draw_decision_hint(ui, analysis)
         self._draw_asset_buttons(ui)
         self._draw_actions(ui)
-
         overlays = self.engine.ui_stack.items()
         if overlays:
             ui.scrim()
-
         for depth, layer in enumerate(overlays):
             layer.draw(self, ui, depth)
-
         self.buttons = ui.buttons
-
-        # 이 부분을 추가함 - 호준
         if self.game_state != "playing":
-            ui.buttons = [] # 배경에 있는 기존 플레이용 버튼들을 비활성화
-            self._draw_end_screen(ui) # 엔딩 창과 RESTART 버튼 렌더링
-            
-        self.buttons = ui.buttons # 최종적으로 클릭 가능한 버튼들을 확정
+            ui.buttons = []
+            self._draw_end_screen(ui)
+            self.buttons = ui.buttons
+
+    def _draw_background(self, screen: pygame.Surface) -> None:
+        pygame.draw.rect(screen, (247, 245, 240), pygame.Rect(0, 0, WIDTH, 92))
+        pygame.draw.line(screen, LINE, (0, 92), (WIDTH, 92), 2)
+        pygame.draw.circle(screen, (226, 239, 232), (470, 245), 92)
+        pygame.draw.circle(screen, (237, 230, 214), (496, 255), 56)
 
     def _draw_reputation(self, ui: UIContext) -> None:
-        box = pygame.Rect(724, 26, 190, 52)
-        pygame.draw.rect(ui.screen, GRAY, box, border_radius=8)
+        box = pygame.Rect(724, 24, 194, 54)
+        pygame.draw.rect(ui.screen, CARD, box, border_radius=8)
         pygame.draw.rect(ui.screen, LINE, box, 2, border_radius=8)
-        ui.text("body", f"Reputation: {self.engine.reputation}", (box.x + 18, box.y + 15), INK)
+        pygame.draw.rect(ui.screen, ACCENT, pygame.Rect(box.x, box.y, int(box.width * self.engine.reputation / 100), box.height), border_radius=8)
+        ui.text("body", f"Reputation: {self.engine.reputation}", (box.x + 18, box.y + 16), (255, 255, 255))
 
-    def _draw_profile_card(
-        self,
-        ui: UIContext,
-        profile: dict,
-        rect: pygame.Rect,
-    ) -> None:
-        pygame.draw.rect(ui.screen, CARD, rect, border_radius=8)
-        pygame.draw.rect(ui.screen, LINE, rect, 2, border_radius=8)
-        ui.text("heading", profile["name"], (rect.x + 24, rect.y + 24), INK)
-        ui.text("body", f"ID: {profile['id']}", (rect.x + 24, rect.y + 70), MUTED)
-        ui.text("body", f"City: {profile['city']}", (rect.x + 24, rect.y + 106), INK)
-        ui.text("body", f"Hobby: {profile['hobby']}", (rect.x + 24, rect.y + 142), INK)
-        #ui.text("body", f"Tier: {profile['tier']}", (rect.x + 24, rect.y + 178), INK)
-        #ui.text("small", f"Suspicion: {profile['suspicion']}", (rect.x + 24, rect.y + 218), WARN)
+    def _draw_avatar(self, ui: UIContext, profile: dict, center: tuple[int, int]) -> None:
+        gender = profile.get("gender", "unknown")
+        seed = sum(ord(ch) for ch in profile["id"] + profile["name"])
+        skin = [(244, 202, 169), (226, 177, 138), (196, 139, 102)][seed % 3]
+        hair = [(50, 38, 34), (76, 52, 42), (38, 43, 52), (118, 77, 42)][seed % 4]
+        shirt = (219, 92, 106) if gender == "female" else (61, 112, 188)
+        cx, cy = center
+        pygame.draw.circle(ui.screen, (0, 0, 0, 28), (cx + 3, cy + 6), 58)
+        pygame.draw.circle(ui.screen, shirt, (cx, cy + 48), 48)
+        pygame.draw.circle(ui.screen, skin, (cx, cy), 52)
+        pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 54, cy - 58, 108, 78), math.pi, math.tau, 16)
+        if gender == "female":
+            pygame.draw.circle(ui.screen, hair, (cx - 44, cy - 2), 20)
+            pygame.draw.circle(ui.screen, hair, (cx + 44, cy - 2), 20)
+        pygame.draw.circle(ui.screen, INK, (cx - 17, cy - 4), 4)
+        pygame.draw.circle(ui.screen, INK, (cx + 17, cy - 4), 4)
+        pygame.draw.arc(ui.screen, WARN, pygame.Rect(cx - 18, cy + 10, 36, 22), 0, math.pi, 2)
+        pygame.draw.circle(ui.screen, (255, 230, 220), (cx - 28, cy + 12), 7)
+        pygame.draw.circle(ui.screen, (255, 230, 220), (cx + 28, cy + 12), 7)
+        pygame.draw.circle(ui.screen, CARD, (cx, cy), 56, 3)
 
-    def _draw_analysis_panel(
-        self,
-        ui: UIContext,
-        analysis: MatchAnalysis,
-    ) -> None:
-        # Matching Analysis 박스 UI는 제거되었으나 분석은 내부적으로 계속 진행됨
-        pass
+    def _draw_profile_card(self, ui: UIContext, profile: dict, rect: pygame.Rect) -> None:
+        pygame.draw.rect(ui.screen, (0, 0, 0, 26), pygame.Rect(rect.x + 4, rect.y + 5, rect.width, rect.height), border_radius=10)
+        pygame.draw.rect(ui.screen, CARD, rect, border_radius=10)
+        pygame.draw.rect(ui.screen, LINE, rect, 2, border_radius=10)
+        self._draw_avatar(ui, profile, (rect.x + 84, rect.y + 92))
+        gender = profile.get("gender", "unknown")
+        badge_color = (217, 82, 108) if gender == "female" else BLUE
+        badge = pygame.Rect(rect.x + 188, rect.y + 70, 104, 30)
+        pygame.draw.rect(ui.screen, badge_color, badge, border_radius=15)
+        ui.text("small", gender.upper(), (badge.x + 18, badge.y + 7), (255, 255, 255))
+        ui.text("heading", profile["name"], (rect.x + 188, rect.y + 28), INK)
+        ui.text("body", f"ID: {profile['id']}", (rect.x + 188, rect.y + 112), MUTED)
+        ui.text("body", f"City: {profile['city']}", (rect.x + 28, rect.y + 184), INK)
+        ui.text("body", f"Hobby: {profile['hobby']}", (rect.x + 28, rect.y + 218), INK)
+        ui.text("small", f"Tier {profile['tier']}  Success {int(profile['success_rate'] * 100)}%", (rect.x + 188, rect.y + 148), MUTED)
+
+    def _draw_decision_hint(self, ui: UIContext, analysis: MatchAnalysis) -> None:
+        panel = pygame.Rect(278, 402, 404, 76)
+        pygame.draw.rect(ui.screen, CARD, panel, border_radius=10)
+        pygame.draw.rect(ui.screen, LINE, panel, 2, border_radius=10)
+        same_gender = analysis.first.get("gender") == analysis.second.get("gender")
+        if same_gender:
+            text = "Same gender pair detected: press REJECT"
+            color = WARN
+        elif analysis.score >= self.engine.PASS_SCORE:
+            text = f"Looks acceptable: score {analysis.score}"
+            color = ACCENT
+        else:
+            text = f"Risky match: score {analysis.score}"
+            color = WARN
+        ui.text("body", text, (panel.x + 22, panel.y + 17), color)
+        ui.text("small", f"Hobby distance {analysis.hobby_distance} / travel {analysis.travel_distance:.1f}", (panel.x + 22, panel.y + 46), MUTED)
 
     def _draw_asset_buttons(self, ui: UIContext) -> None:
-        panel = pygame.Rect(278, 410, 404, 150)
-        pygame.draw.rect(ui.screen, (250, 249, 244), panel, border_radius=8)
-        pygame.draw.rect(ui.screen, LINE, panel, 2, border_radius=8)
-        ui.text("heading", "그래프 보기", (panel.x + 24, panel.y + 18), INK)
+        panel = pygame.Rect(278, 492, 404, 74)
+        pygame.draw.rect(ui.screen, CARD, panel, border_radius=10)
+        pygame.draw.rect(ui.screen, LINE, panel, 2, border_radius=10)
+        ui.button(pygame.Rect(panel.x + 18, panel.y + 16, 112, 42), "Hobby Tree", "tree", ACCENT)
+        ui.button(pygame.Rect(panel.x + 146, panel.y + 16, 112, 42), "Relations", "graph_rel", BLUE)
+        ui.button(pygame.Rect(panel.x + 274, panel.y + 16, 112, 42), "Cities", "graph_city", ACCENT)
 
     def _draw_actions(self, ui: UIContext) -> None:
-        ui.button(pygame.Rect(46, 514, 170, 52), "REJECT", "reject", WARN)
-        ui.button(pygame.Rect(744, 514, 170, 52), "NEXT PAIR", "next", ACCENT)
-        
-        # Asset buttons (그래프 보기 패널 내)
-        panel = pygame.Rect(278, 410, 404, 150)
-        button_width = 110
-        button_height = 80
-        button_y = panel.y + 54
-        spacing = 12
-        start_x = panel.x + 24
-        
-        # 수정 전 : ui.button(pygame.Rect(start_x, button_y, button_width, button_height), "관계도\n(Tree)", "tree", ACCENT)
-        ui.button(pygame.Rect(start_x, button_y, button_width, button_height), "취미 트리\n(Tree)", "tree", ACCENT)
-        ui.button(pygame.Rect(start_x + button_width + spacing, button_y, button_width, button_height), "관계\n그래프", "graph_rel", ACCENT)
-        ui.button(pygame.Rect(start_x + (button_width + spacing) * 2, button_y, button_width, button_height), "도시\n그래프", "graph_city", ACCENT)
-        
+        ui.button(pygame.Rect(42, 512, 174, 54), "REJECT", "reject", WARN)
+        ui.button(pygame.Rect(744, 512, 174, 54), "NEXT PAIR", "next", ACCENT)
         if self.notice_text:
-            ui.text("small", self.notice_text, (46, 588), WARN)
-    # 추가함 - 호준
+            pygame.draw.rect(ui.screen, SOFT_RED, pygame.Rect(42, 584, 876, 34), border_radius=8)
+            ui.text("small", self.notice_text, (56, 592), WARN)
+
     def _update_game_state(self) -> None:
-        """명성이나 큐 상태를 확인하여 게임 오버 또는 클리어 상태로 전환"""
         if self.engine.reputation <= 0:
             self.game_state = "game_over"
             self.engine.ui_stack.clear()
@@ -749,76 +499,33 @@ class PlayScene:
             self.engine.ui_stack.clear()
 
     def _draw_end_screen(self, ui: UIContext) -> None:
-        """게임 오버 또는 클리어 시 화면을 덮는 팝업과 완전한 반응형 텍스트를 그림"""
-        ui.scrim() 
-        
-        if self.game_state == "game_over":
-            title_text = "GAME OVER"
-            heading_text = "해고되었습니다."
-            body_text = "명성이 바닥나 심사관 자격을 박탈당했습니다."
-            color = WARN
-        else: # clear
-            title_text = "STAGE CLEAR"
-            heading_text = "오늘의 업무 종료"
-            body_text = f"성공적으로 업무를 마쳤습니다! (남은 명성: {self.engine.reputation})"
-            color = ACCENT
-
-        wrapped_lines = ui.wrap_text("body", body_text, 320)
-        line_height = ui.fonts["body"].get_height() + 8
-        total_text_height = len(wrapped_lines) * line_height
-
-        # 1. 텍스트를 밑으로 내릴 공간을 확보하기 위해 기본 베이스 높이를 180에서 200으로 증가
-        panel_height = 200 + total_text_height
-        panel = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - panel_height // 2, 400, panel_height)
-        
-        ui.popup_frame(panel, title_text, color, 0)
-
-        # 2. 헤딩(제목) Y좌표 수정: 패널 상단에서 85px 아래로 내려서 가로선(54px)과 완벽히 분리
-        heading_surf = ui.fonts["heading"].render(heading_text, True, color)
-        heading_rect = heading_surf.get_rect(center=(panel.centerx, panel.y + 85))
-        ui.screen.blit(heading_surf, heading_rect)
-        
-        # 3. 본문 시작 Y좌표도 헤딩이 밀려난 만큼 아래로 이동 (105 -> 125)
-        line_y = panel.y + 125
-        for line in wrapped_lines:
-            line_surf = ui.fonts["body"].render(line, True, INK)
-            line_rect = line_surf.get_rect(center=(panel.centerx, line_y))
-            ui.screen.blit(line_surf, line_rect)
-            line_y += line_height
-        
-        # 4. 하단 버튼 및 안내 텍스트는 panel.bottom 기준으로 고정
-        ui.button(pygame.Rect(panel.centerx - 70, panel.bottom - 75, 140, 40), "RESTART", "restart", BLUE)
-        
-        info_surf = ui.fonts["small"].render("ESC를 눌러 게임을 종료하세요.", True, MUTED)
-        info_rect = info_surf.get_rect(center=(panel.centerx, panel.bottom - 20))
-        ui.screen.blit(info_surf, info_rect)
+        ui.scrim()
+        clear = self.game_state == "clear"
+        title = "STAGE CLEAR" if clear else "GAME OVER"
+        body = f"업무를 마쳤습니다. 남은 명성: {self.engine.reputation}" if clear else "명성이 바닥나 심사관 자격을 잃었습니다."
+        color = ACCENT if clear else WARN
+        panel = pygame.Rect(WIDTH // 2 - 210, HEIGHT // 2 - 120, 420, 240)
+        ui.popup_frame(panel, title, color, 0)
+        ui.text("heading", body, (panel.x + 42, panel.y + 92), INK)
+        ui.button(pygame.Rect(panel.centerx - 72, panel.bottom - 76, 144, 42), "RESTART", "restart", BLUE)
 
     def go_back_dialogue(self) -> None:
-        if not self.dialogue_history:
-            return
-        previous_id = self.dialogue_history.pop()
-        self.engine.dialogue.current_id = previous_id
+        if self.dialogue_history:
+            self.engine.dialogue.current_id = self.dialogue_history.pop()
 
     def _restart_game(self) -> None:
-        """게임을 초기 상태로 되돌리고 재시작"""
         self.game_state = "playing"
         self.pair_index = 0
-        self.engine.reputation = 80  # 명성을 초기 점수(80점)로 복구
-        random.shuffle(self.match_queue)  # 큐를 다시 섞어서 새로운 패턴 제공
-        # 메시지 큐 비우기
-        self.message_queue.clear() 
+        self.engine.reputation = 80
+        random.shuffle(self.match_queue)
+        self.message_queue.clear()
         self.notice_text = ""
         self.notice_timer = 0.0
-
-        # 대화 트리 상태 초기화
-        self.engine.dialogue.reset_to_root() 
-        # UI 대화 뒤로가기 기록도 완벽히 비워줌 (이거 안 비우면 뒤로가기 눌렀을 때 버그 남)
-        self.dialogue_history.clear()        
-        
+        self.dialogue_history.clear()
+        self.engine.dialogue.reset_to_root()
         self.engine.ui_stack.clear()
-        
-        # 대화창 띄우기
         self.engine.ui_stack.push(DialoguePopup())
+
 
 def run_game(engine: MatchmakingEngine) -> None:
     PlayScene(engine).run()

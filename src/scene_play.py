@@ -110,11 +110,17 @@ class UILayer:
 class DialoguePopup(UILayer):
     def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
         dialogue = scene.engine.dialogue.current
-        panel = pygame.Rect(76 + depth * 20, 52 + depth * 16, WIDTH - 152, 500)
+        panel = pygame.Rect(64 + depth * 16, 28 + depth * 12, WIDTH - 128, HEIGHT - 56)
         ui.popup_frame(panel, "Briefing", BLUE, depth)
         ui.button(pygame.Rect(panel.right - 118, panel.y + 14, 90, 34), "CLOSE", "close_dialogue", WARN)
 
-        text_area_bottom = panel.bottom - 148
+        button_height = 42
+        button_gap = 12
+        choice_count = len(dialogue.choices)
+        choices_height = choice_count * button_height + max(0, choice_count - 1) * button_gap
+        choice_y = panel.bottom - 30 - choices_height
+        text_area_bottom = choice_y - 24
+
         y = panel.y + 84
         for line in ui.wrap_text("body", dialogue.text, panel.width - 56):
             if y + ui.fonts["body"].get_height() > text_area_bottom:
@@ -125,10 +131,9 @@ class DialoguePopup(UILayer):
         if scene.dialogue_history:
             ui.button(pygame.Rect(panel.right - 214, panel.y + 14, 82, 34), "BACK", "dialogue_back", BLUE)
 
-        choice_y = panel.bottom - 128
         for index, choice in enumerate(dialogue.choices):
             ui.button(
-                pygame.Rect(panel.x + 28, choice_y + index * 56, panel.width - 56, 42),
+                pygame.Rect(panel.x + 28, choice_y + index * (button_height + button_gap), panel.width - 56, button_height),
                 choice["label"],
                 f"dialogue_choice_{index}",
                 ACCENT,
@@ -447,16 +452,23 @@ class PlayScene:
         pygame.draw.circle(ui.screen, (0, 0, 0, 24), (cx + 3, cy + 5), 58)
         pygame.draw.circle(ui.screen, PORTRAIT_BG, (cx, cy), 58)
         pygame.draw.circle(ui.screen, shirt, (cx, cy + 48), 43)
-        pygame.draw.rect(ui.screen, skin, pygame.Rect(cx - 13, cy + 24, 26, 32), border_radius=8)
-        pygame.draw.ellipse(ui.screen, skin, pygame.Rect(cx - 38, cy - 40, 76, 84))
+        pygame.draw.rect(ui.screen, skin, pygame.Rect(cx - 13, cy + 22, 26, 34), border_radius=8)
 
         if gender == "female":
-            pygame.draw.ellipse(ui.screen, hair, pygame.Rect(cx - 44, cy - 47, 88, 72))
-            pygame.draw.ellipse(ui.screen, skin, pygame.Rect(cx - 34, cy - 32, 68, 70))
-            pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 36, cy - 42, 72, 42), math.pi, math.tau, 12)
+            pygame.draw.ellipse(ui.screen, hair, pygame.Rect(cx - 42, cy - 44, 84, 78))
         else:
-            pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 39, cy - 43, 78, 50), math.pi, math.tau, 14)
-            pygame.draw.rect(ui.screen, hair, pygame.Rect(cx - 32, cy - 30, 64, 18), border_radius=8)
+            pygame.draw.ellipse(ui.screen, hair, pygame.Rect(cx - 38, cy - 45, 76, 50))
+
+        pygame.draw.ellipse(ui.screen, skin, pygame.Rect(cx - 36, cy - 34, 72, 78))
+        pygame.draw.rect(ui.screen, skin, pygame.Rect(cx - 28, cy - 34, 56, 24), border_radius=12)
+
+        if gender == "female":
+            pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 36, cy - 43, 72, 36), math.pi, math.tau, 9)
+            pygame.draw.line(ui.screen, hair, (cx - 27, cy - 22), (cx - 35, cy + 17), 7)
+            pygame.draw.line(ui.screen, hair, (cx + 27, cy - 22), (cx + 35, cy + 17), 7)
+        else:
+            pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 34, cy - 42, 68, 34), math.pi, math.tau, 10)
+            pygame.draw.line(ui.screen, hair, (cx - 26, cy - 22), (cx + 26, cy - 22), 7)
 
         pygame.draw.circle(ui.screen, INK, (cx - 14, cy - 2), 3)
         pygame.draw.circle(ui.screen, INK, (cx + 14, cy - 2), 3)

@@ -24,6 +24,7 @@ WARN = (184, 67, 52)
 BLUE = (50, 91, 158)
 GRAY = (218, 218, 218)
 SOFT_RED = (255, 235, 231)
+PORTRAIT_BG = (235, 231, 222)
 
 
 @dataclass(frozen=True)
@@ -40,9 +41,9 @@ class Button:
         hovered = self.contains(mouse_pos)
         color = tuple(min(255, c + 18) for c in self.color) if hovered else self.color
         shadow = pygame.Rect(self.rect.x + 2, self.rect.y + 3, self.rect.width, self.rect.height)
-        pygame.draw.rect(screen, (0, 0, 0, 32), shadow, border_radius=8)
+        pygame.draw.rect(screen, (0, 0, 0, 28), shadow, border_radius=8)
         pygame.draw.rect(screen, color, self.rect, border_radius=8)
-        pygame.draw.rect(screen, (255, 255, 255, 72), self.rect, 1, border_radius=8)
+        pygame.draw.rect(screen, (255, 255, 255, 70), self.rect, 1, border_radius=8)
         label = font.render(self.label, True, (255, 255, 255))
         screen.blit(label, label.get_rect(center=self.rect.center))
 
@@ -109,17 +110,29 @@ class UILayer:
 class DialoguePopup(UILayer):
     def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
         dialogue = scene.engine.dialogue.current
-        panel = pygame.Rect(92 + depth * 24, 86 + depth * 18, WIDTH - 184, 348)
+        panel = pygame.Rect(76 + depth * 20, 52 + depth * 16, WIDTH - 152, 500)
         ui.popup_frame(panel, "Briefing", BLUE, depth)
         ui.button(pygame.Rect(panel.right - 118, panel.y + 14, 90, 34), "CLOSE", "close_dialogue", WARN)
-        y = panel.y + 86
-        for line in ui.wrap_text("body", dialogue.text, panel.width - 52):
-            ui.text("body", line, (panel.x + 26, y), INK)
-            y += ui.fonts["body"].get_height() + 6
+
+        text_area_bottom = panel.bottom - 148
+        y = panel.y + 84
+        for line in ui.wrap_text("body", dialogue.text, panel.width - 56):
+            if y + ui.fonts["body"].get_height() > text_area_bottom:
+                break
+            ui.text("body", line, (panel.x + 28, y), INK)
+            y += ui.fonts["body"].get_height() + 7
+
         if scene.dialogue_history:
             ui.button(pygame.Rect(panel.right - 214, panel.y + 14, 82, 34), "BACK", "dialogue_back", BLUE)
+
+        choice_y = panel.bottom - 128
         for index, choice in enumerate(dialogue.choices):
-            ui.button(pygame.Rect(panel.x + 26, y + 20 + index * 58, panel.width - 52, 44), choice["label"], f"dialogue_choice_{index}", ACCENT)
+            ui.button(
+                pygame.Rect(panel.x + 28, choice_y + index * 56, panel.width - 56, 42),
+                choice["label"],
+                f"dialogue_choice_{index}",
+                ACCENT,
+            )
 
     def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
         for button in scene.buttons:
@@ -350,7 +363,7 @@ class PlayScene:
         result = self.engine.evaluate_match(first["id"], second["id"])
         if result.accepted:
             self._play_sound("success")
-            self.message_queue.append(f"승인 성공! 매칭 점수: {result.score}점")
+            self.message_queue.append("승인 성공! 적합한 매칭입니다.")
         else:
             self._play_sound("error")
             self.engine.reputation = max(0, self.engine.reputation - 10)
@@ -367,7 +380,7 @@ class PlayScene:
         else:
             self._play_sound("error")
             self.engine.reputation = max(0, self.engine.reputation - 10)
-            self.message_queue.append(f"오심입니다! 적합한 매칭을 거절했습니다. 점수: {result.score}점")
+            self.message_queue.append("오심입니다! 적합한 매칭을 거절했습니다.")
         self.pair_index += 1
         self._update_game_state()
 
@@ -418,29 +431,37 @@ class PlayScene:
         box = pygame.Rect(724, 24, 194, 54)
         pygame.draw.rect(ui.screen, CARD, box, border_radius=8)
         pygame.draw.rect(ui.screen, LINE, box, 2, border_radius=8)
-        pygame.draw.rect(ui.screen, ACCENT, pygame.Rect(box.x, box.y, int(box.width * self.engine.reputation / 100), box.height), border_radius=8)
-        ui.text("body", f"Reputation: {self.engine.reputation}", (box.x + 18, box.y + 16), (255, 255, 255))
+        fill_width = max(0, min(box.width, int(box.width * self.engine.reputation / 100)))
+        if fill_width:
+            pygame.draw.rect(ui.screen, ACCENT, pygame.Rect(box.x, box.y, fill_width, box.height), border_radius=8)
+        ui.text("body", f"Reputation: {self.engine.reputation}", (box.x + 18, box.y + 16), (255, 255, 255) if fill_width > 130 else INK)
 
     def _draw_avatar(self, ui: UIContext, profile: dict, center: tuple[int, int]) -> None:
         gender = profile.get("gender", "unknown")
         seed = sum(ord(ch) for ch in profile["id"] + profile["name"])
-        skin = [(244, 202, 169), (226, 177, 138), (196, 139, 102)][seed % 3]
-        hair = [(50, 38, 34), (76, 52, 42), (38, 43, 52), (118, 77, 42)][seed % 4]
-        shirt = (219, 92, 106) if gender == "female" else (61, 112, 188)
+        skin = [(244, 202, 169), (226, 177, 138), (198, 142, 105)][seed % 3]
+        hair = [(54, 42, 36), (82, 57, 43), (42, 47, 56), (115, 77, 45)][seed % 4]
+        shirt = (215, 92, 115) if gender == "female" else (67, 118, 188)
         cx, cy = center
-        pygame.draw.circle(ui.screen, (0, 0, 0, 28), (cx + 3, cy + 6), 58)
-        pygame.draw.circle(ui.screen, shirt, (cx, cy + 48), 48)
-        pygame.draw.circle(ui.screen, skin, (cx, cy), 52)
-        pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 54, cy - 58, 108, 78), math.pi, math.tau, 16)
+
+        pygame.draw.circle(ui.screen, (0, 0, 0, 24), (cx + 3, cy + 5), 58)
+        pygame.draw.circle(ui.screen, PORTRAIT_BG, (cx, cy), 58)
+        pygame.draw.circle(ui.screen, shirt, (cx, cy + 48), 43)
+        pygame.draw.rect(ui.screen, skin, pygame.Rect(cx - 13, cy + 24, 26, 32), border_radius=8)
+        pygame.draw.ellipse(ui.screen, skin, pygame.Rect(cx - 38, cy - 40, 76, 84))
+
         if gender == "female":
-            pygame.draw.circle(ui.screen, hair, (cx - 44, cy - 2), 20)
-            pygame.draw.circle(ui.screen, hair, (cx + 44, cy - 2), 20)
-        pygame.draw.circle(ui.screen, INK, (cx - 17, cy - 4), 4)
-        pygame.draw.circle(ui.screen, INK, (cx + 17, cy - 4), 4)
-        pygame.draw.arc(ui.screen, WARN, pygame.Rect(cx - 18, cy + 10, 36, 22), 0, math.pi, 2)
-        pygame.draw.circle(ui.screen, (255, 230, 220), (cx - 28, cy + 12), 7)
-        pygame.draw.circle(ui.screen, (255, 230, 220), (cx + 28, cy + 12), 7)
-        pygame.draw.circle(ui.screen, CARD, (cx, cy), 56, 3)
+            pygame.draw.ellipse(ui.screen, hair, pygame.Rect(cx - 44, cy - 47, 88, 72))
+            pygame.draw.ellipse(ui.screen, skin, pygame.Rect(cx - 34, cy - 32, 68, 70))
+            pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 36, cy - 42, 72, 42), math.pi, math.tau, 12)
+        else:
+            pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 39, cy - 43, 78, 50), math.pi, math.tau, 14)
+            pygame.draw.rect(ui.screen, hair, pygame.Rect(cx - 32, cy - 30, 64, 18), border_radius=8)
+
+        pygame.draw.circle(ui.screen, INK, (cx - 14, cy - 2), 3)
+        pygame.draw.circle(ui.screen, INK, (cx + 14, cy - 2), 3)
+        pygame.draw.line(ui.screen, (150, 74, 72), (cx - 11, cy + 20), (cx + 11, cy + 20), 2)
+        pygame.draw.circle(ui.screen, CARD, (cx, cy), 58, 3)
 
     def _draw_profile_card(self, ui: UIContext, profile: dict, rect: pygame.Rect) -> None:
         pygame.draw.rect(ui.screen, (0, 0, 0, 26), pygame.Rect(rect.x + 4, rect.y + 5, rect.width, rect.height), border_radius=10)
@@ -456,7 +477,7 @@ class PlayScene:
         ui.text("body", f"ID: {profile['id']}", (rect.x + 188, rect.y + 112), MUTED)
         ui.text("body", f"City: {profile['city']}", (rect.x + 28, rect.y + 184), INK)
         ui.text("body", f"Hobby: {profile['hobby']}", (rect.x + 28, rect.y + 218), INK)
-        ui.text("small", f"Tier {profile['tier']}  Success {int(profile['success_rate'] * 100)}%", (rect.x + 188, rect.y + 148), MUTED)
+        ui.text("small", f"Success {int(profile['success_rate'] * 100)}%", (rect.x + 188, rect.y + 148), MUTED)
 
     def _draw_decision_hint(self, ui: UIContext, analysis: MatchAnalysis) -> None:
         panel = pygame.Rect(278, 402, 404, 76)
@@ -466,14 +487,14 @@ class PlayScene:
         if same_gender:
             text = "Same gender pair detected: press REJECT"
             color = WARN
-        elif analysis.score >= self.engine.PASS_SCORE:
-            text = f"Looks acceptable: score {analysis.score}"
-            color = ACCENT
-        else:
-            text = f"Risky match: score {analysis.score}"
+        elif analysis.forbidden_path is not None:
+            text = "Relationship conflict detected: press REJECT"
             color = WARN
+        else:
+            text = "Review profiles, then approve or reject"
+            color = ACCENT
         ui.text("body", text, (panel.x + 22, panel.y + 17), color)
-        ui.text("small", f"Hobby distance {analysis.hobby_distance} / travel {analysis.travel_distance:.1f}", (panel.x + 22, panel.y + 46), MUTED)
+        ui.text("small", "Use gender, city, hobby, and relation graphs to decide.", (panel.x + 22, panel.y + 46), MUTED)
 
     def _draw_asset_buttons(self, ui: UIContext) -> None:
         panel = pygame.Rect(278, 492, 404, 74)

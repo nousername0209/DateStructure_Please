@@ -2,7 +2,7 @@
   "profiles": [
     {
       "id": "u001",
-      "name": "Mina",
+      "name": "Mina (female)",
       "gender": "female",
       "city": "Seoul",
       "hobby": "football",
@@ -15,7 +15,7 @@
     },
     {
       "id": "u002",
-      "name": "Jun",
+      "name": "Jun (male)",
       "gender": "male",
       "city": "Busan",
       "hobby": "jazz",
@@ -28,7 +28,7 @@
     },
     {
       "id": "u003",
-      "name": "Ara",
+      "name": "Ara (female)",
       "gender": "female",
       "city": "Daejeon",
       "hobby": "basketball",
@@ -41,7 +41,7 @@
     },
     {
       "id": "u004",
-      "name": "Theo",
+      "name": "Theo (male)",
       "gender": "male",
       "city": "Jeju",
       "hobby": "oil_painting",
@@ -54,7 +54,7 @@
     },
     {
       "id": "u005",
-      "name": "Sujin",
+      "name": "Sujin (female)",
       "gender": "female",
       "city": "Gangneung",
       "hobby": "running",
@@ -67,7 +67,7 @@
     },
     {
       "id": "u006",
-      "name": "Leo",
+      "name": "Leo (male)",
       "gender": "male",
       "city": "Seoul",
       "hobby": "basketball",
@@ -80,7 +80,7 @@
     },
     {
       "id": "u007",
-      "name": "Yuna",
+      "name": "Yuna (female)",
       "gender": "female",
       "city": "Busan",
       "hobby": "painting",
@@ -93,7 +93,7 @@
     },
     {
       "id": "u008",
-      "name": "Ian",
+      "name": "Ian (male)",
       "gender": "male",
       "city": "Jeju",
       "hobby": "running",
@@ -106,7 +106,7 @@
     },
     {
       "id": "u009",
-      "name": "Yoonjae",
+      "name": "Yoonjae (male)",
       "gender": "male",
       "city": "Incheon",
       "hobby": "jazz",
@@ -119,7 +119,7 @@
     },
     {
       "id": "u010",
-      "name": "Guanwook",
+      "name": "Guanwook (male)",
       "gender": "male",
       "city": "Gwangju",
       "hobby": "football",
@@ -132,7 +132,7 @@
     },
     {
       "id": "u011",
-      "name": "Jiwon",
+      "name": "Jiwon (female)",
       "gender": "female",
       "city": "Seoul",
       "hobby": "oil_painting",

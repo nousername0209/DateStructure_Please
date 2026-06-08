@@ -131,7 +131,22 @@ class UILayer:
 class DialoguePopup(UILayer):
     def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
         dialogue = scene.engine.dialogue.current
-        panel = pygame.Rect(92 + depth * 28, 86 + depth * 20, WIDTH - 184, 348)
+        max_width = WIDTH - 184
+        text_lines = ui.wrap_text("body", dialogue.text, max_width - 48)
+        line_height = ui.fonts["body"].get_height() + 6
+
+        if dialogue.choices:
+            choice_section_height = len(dialogue.choices) * 60 + 16
+        else:
+            info_text = "선택지가 없습니다. ESC를 눌러 대화를 종료하거나 뒤로 가기 버튼을 누르세요." if scene.dialogue_history else "선택지가 없습니다. ESC를 눌러 대화를 종료하세요."
+            info_lines = ui.wrap_text("small", info_text, max_width - 48)
+            info_line_height = ui.fonts["small"].get_height() + 6
+            choice_section_height = len(info_lines) * info_line_height + 24
+
+        panel_height = 84 + len(text_lines) * line_height + choice_section_height + 40
+        panel_height = min(panel_height, HEIGHT - 80)
+
+        panel = pygame.Rect(92 + depth * 28, 86 + depth * 20, max_width, panel_height)
         ui.popup_frame(panel, "Dialogue", BLUE, depth)
         ui.button(pygame.Rect(panel.right - 116, panel.y + 14, 88, 34), "CLOSE", "close_dialogue", WARN)
 

@@ -26,6 +26,10 @@ GRAY = (218, 218, 218)
 SOFT_RED = (255, 235, 231)
 PORTRAIT_BG = (235, 231, 222)
 
+# 관계 종류별 화살표 색상. adjacency에 저장된 kind 문자열로 조회한다.
+REL_COLORS = {"best_friend": ACCENT, "ex_partner": BLUE, "scam_partner": WARN}
+REL_DEFAULT_COLOR = MUTED
+
 
 @dataclass(frozen=True)
 class Button:
@@ -222,27 +226,31 @@ class AssetPopup(UILayer):
         for i, node in enumerate(nodes):
             angle = 2 * math.pi * i / len(nodes) - math.pi / 2
             coords[node] = (int(area.centerx + math.cos(angle) * radius), int(area.centery + math.sin(angle) * radius))
+        # 관계는 방향이 없으므로 화살표 없이 색상 선으로만 연결을 표시한다.
         for source, targets in scene.engine.relationships.adjacency.items():
-            for target in targets:
-                p1, p2 = coords[source], coords[target]
-                pygame.draw.line(ui.screen, WARN, p1, p2, 2)
-                self._draw_arrow_head(ui.screen, p1, p2, WARN)
+            for target, kind in targets.items():
+                color = REL_COLORS.get(kind, REL_DEFAULT_COLOR)
+                pygame.draw.line(ui.screen, color, coords[source], coords[target], 2)
         for node, pos in coords.items():
             pygame.draw.circle(ui.screen, CARD, pos, 22)
             pygame.draw.circle(ui.screen, INK, pos, 22, 2)
             label = ui.fonts["small"].render(node, True, INK)
             ui.screen.blit(label, label.get_rect(center=pos))
+        self._draw_rel_legend(ui, area)
 
-    def _draw_arrow_head(self, screen: pygame.Surface, start: tuple[int, int], end: tuple[int, int], color: tuple[int, int, int]) -> None:
-        dx, dy = end[0] - start[0], end[1] - start[1]
-        dist = math.hypot(dx, dy)
-        if dist == 0:
-            return
-        ux, uy = dx / dist, dy / dist
-        tip = (end[0] - ux * 24, end[1] - uy * 24)
-        base = (tip[0] - ux * 13, tip[1] - uy * 13)
-        nx, ny = -uy, ux
-        pygame.draw.polygon(screen, color, [tip, (base[0] + nx * 7, base[1] + ny * 7), (base[0] - nx * 7, base[1] - ny * 7)])
+    def _draw_rel_legend(self, ui: UIContext, area: pygame.Rect) -> None:
+        rows = [("best_friend", ACCENT), ("ex_partner", BLUE), ("scam_partner", WARN)]
+        pad, row_h, seg = 10, 24, 34
+        box_w, box_h = 178, pad * 2 + row_h * len(rows)
+        box = pygame.Rect(area.right - box_w, area.y, box_w, box_h)
+        pygame.draw.rect(ui.screen, CARD, box, border_radius=8)
+        pygame.draw.rect(ui.screen, LINE, box, 1, border_radius=8)
+        for i, (kind, color) in enumerate(rows):
+            cy = box.y + pad + row_h * i + row_h // 2
+            x1 = box.x + pad
+            pygame.draw.line(ui.screen, color, (x1, cy), (x1 + seg, cy), 3)
+            label = ui.fonts["small"].render(kind, True, INK)
+            ui.screen.blit(label, (x1 + seg + 10, cy - label.get_height() // 2))
 
     def _draw_hobby_tree(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
         root = scene.engine.hobbies.root

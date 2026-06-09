@@ -4,17 +4,17 @@ from dataclasses import dataclass, field
 
 @dataclass
 class RelationshipGraph:
-    """Directed graph for checking forbidden social paths between profiles."""
+    """Relationship graph for checking direct (undirected) links between profiles."""
 
-    adjacency: dict[str, set[str]] = field(default_factory=dict)
+    adjacency: dict[str, dict[str, str]] = field(default_factory=dict)
 
     def add_user(self, user_id: str) -> None:
-        self.adjacency.setdefault(user_id, set())
+        self.adjacency.setdefault(user_id, {})
 
-    def add_relation(self, source: str, target: str) -> None:
+    def add_relation(self, source: str, target: str, kind: str = "unknown") -> None:
         self.add_user(source)
         self.add_user(target)
-        self.adjacency[source].add(target)
+        self.adjacency[source][target] = kind
 
     def has_path(self, source: str, target: str) -> bool:
         if source == target:
@@ -35,35 +35,14 @@ class RelationshipGraph:
                     queue.append(neighbor)
         return False
 
-    def first_forbidden_path(
-        self,
-        source: str,
-        target: str,
-        forbidden_targets: set[str] | None = None,
-    ) -> list[str] | None:
-        """Return a shortest forbidden path from source to target or blacklisted node."""
-
-        targets = set(forbidden_targets or set())
-        targets.add(target)
-        if source not in self.adjacency:
-            return None
-
-        queue = deque([(source, [source])])
-        visited = {source}
-
-        while queue:
-            current, path = queue.popleft()
-            if current in targets and current != source:
-                return path
-            for neighbor in self.adjacency[current]:
-                if neighbor not in visited:
-                    visited.add(neighbor)
-                    queue.append((neighbor, path + [neighbor]))
-        return None
+    def is_related(self, a: str, b: str) -> bool:
+        """두 사용자가 '직접' 연결돼 있으면 True. 관계는 방향이 없는 것으로 취급하며,
+        다단계 연쇄(A-B, B-C => A-C)는 보지 않는다."""
+        return b in self.adjacency.get(a, {}) or a in self.adjacency.get(b, {})
 
     @classmethod
     def from_edges(cls, edges: list[dict[str, str]]) -> "RelationshipGraph":
         graph = cls()
         for edge in edges:
-            graph.add_relation(edge["from"], edge["to"])
+            graph.add_relation(edge["from"], edge["to"], edge.get("type", "unknown"))
         return graph

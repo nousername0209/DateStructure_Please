@@ -38,11 +38,13 @@ byte-compiling and by running the game.
   code). `priority_profiles()` re-sorts by `(tier_priority, success_rate)` descending. `analyze_pair()`
   computes a `MatchAnalysis` (score + forbidden-path + distances); `evaluate_match()` returns a
   `MatchResult` (accept/reject) and **is** called by the scene (`_approve_pair`/`_reject_pair`).
-  Scoring: starts at 100; same-gender pairs (`is_same_gender_pair`) and forbidden-relationship paths
+  Scoring: starts at 100; same-gender pairs (`is_same_gender_pair`) and forbidden relationships
   force score 0; otherwise hobby distance over `hobby_distance_limit` and travel distance over
   `long_distance_limit` subtract `PENALTY_HOBBY`/`PENALTY_TRAVEL`; a pair passes at `PASS_SCORE` (60).
-  The forbidden-path check runs in **both directions** (A→B then B→A) since the relationship graph is
-  directed.
+  The forbidden check is **direct-only** (`is_related` + direct blacklist): only a direct relationship
+  link between the two profiles — or one blacklisting the other — rejects the pair. There is **no
+  multi-hop chaining** (A–B and B–C do *not* reject A–C); when forbidden, the recorded
+  `forbidden_path` is simply `[first_id, second_id]`.
 - **`src/scene_play.py`** — all UI/rendering. `PlayScene` runs the event/update/draw loop. UI is
   immediate-mode: each frame, drawing code calls `ui.button(...)` which both draws and registers the
   button into `ui.buttons`; after drawing, `self.buttons = ui.buttons`, and `_handle_click` routes by
@@ -52,7 +54,9 @@ byte-compiling and by running the game.
   (`_draw_avatar`) and **sound effects** (`_make_tone`/`_play_sound`, click/success/error tones) are
   generated procedurally at runtime — no image or audio asset files are loaded.
 - **`src/structures/`** — the data structures the project exists to demonstrate:
-  - `relationship_graph.py` — directed graph; BFS `first_forbidden_path()` finds forbidden social links.
+  - `relationship_graph.py` — undirected relationship graph; `is_related()` checks a **direct** link
+    between two users (no path traversal). Each edge stores a `kind` (e.g. `best_friend`/`ex_partner`/
+    `scam_partner`). (`has_path()` is a leftover BFS demo, not used by game logic.)
   - `hobby_tree.py` — general tree; LCA-based `distance()` for hobby compatibility.
   - `map_graph.py` — weighted undirected graph; Dijkstra `shortest_distance()` for travel penalties.
   - `ui_stack.py` — generic stack for UI overlays.

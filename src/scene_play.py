@@ -238,6 +238,7 @@ class AssetPopup(UILayer):
         coords = {}
         for pos, node in enumerate(ordered):
             angle = 2 * math.pi * pos / n - math.pi / 2
+            # skew left: 100px shift
             coords[node] = (int(area.centerx - 100 + math.cos(angle) * radius), int(area.centery + math.sin(angle) * radius))
         # 선택된 15명 사이의 간선만(유도 부분그래프) 그린다. 관계는 방향이 없으므로 화살표 없이 색상 선.
         for source in members:
@@ -247,14 +248,14 @@ class AssetPopup(UILayer):
                     pygame.draw.line(ui.screen, color, coords[source], coords[target], 2)
         for node in members:
             pos = coords[node]
-            pygame.draw.circle(ui.screen, CARD, pos, 22)
+            pygame.draw.circle(ui.screen, CARD, pos, 10)
             # 심사 중인 두 사람은 초록 링으로 강조해 한눈에 찾도록 한다.
             if node in matched:
-                pygame.draw.circle(ui.screen, ACCENT, pos, 22, 4)
+                pygame.draw.circle(ui.screen, ACCENT, pos, 10, 4)
             else:
-                pygame.draw.circle(ui.screen, INK, pos, 22, 2)
+                pygame.draw.circle(ui.screen, INK, pos, 10, 2)
             label = ui.fonts["small"].render(node, True, INK)
-            ui.screen.blit(label, label.get_rect(center=pos))
+            ui.screen.blit(label, label.get_rect(center=(pos[0], pos[1] + 18)))
         self._draw_rel_legend(ui, area)
 
     def _draw_rel_legend(self, ui: UIContext, area: pygame.Rect) -> None:
@@ -574,8 +575,9 @@ class PlayScene:
             color = ACCENT
         ui.text("body", text, (panel.x + 22, panel.y + 17), color)
         ui.text("small", "Use gender, city, hobby, and relation graphs to decide.", (panel.x + 22, panel.y + 46), MUTED)
-        # 디버그용: 시스템이 계산한 점수를 박스 오른쪽 20px 지점에 표시
+        # 디버그용: 시스템이 계산한 점수와 (관계로 조정된) 통과 기준선을 표시
         ui.text("body", f"score: {analysis.score}", (panel.right + 20, panel.y + 17), INK)
+        ui.text("body", f"pass ≥ {analysis.pass_threshold}", (panel.right + 20, panel.y + 41), INK)
 
     def _draw_asset_buttons(self, ui: UIContext) -> None:
         panel = pygame.Rect(278, 492, 404, 74)
@@ -587,7 +589,7 @@ class PlayScene:
 
     def _draw_actions(self, ui: UIContext) -> None:
         ui.button(pygame.Rect(42, 512, 174, 54), "REJECT", "reject", WARN)
-        ui.button(pygame.Rect(744, 512, 174, 54), "NEXT PAIR", "next", ACCENT)
+        ui.button(pygame.Rect(744, 512, 174, 54), "MATCH", "next", ACCENT)
         if self.notice_text:
             pygame.draw.rect(ui.screen, SOFT_RED, pygame.Rect(42, 584, 876, 34), border_radius=8)
             ui.text("small", self.notice_text, (56, 592), WARN)

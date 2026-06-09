@@ -48,6 +48,34 @@ class RelationshipGraph:
                 result.add(source)
         return result
 
+    def relation_kinds(self, a: str, b: str) -> set[str]:
+        """두 사용자 사이 '직접' 간선의 관계 종류 집합. 방향을 무시하므로 양방향을 모두 본다.
+        직접 연결이 없으면 빈 집합."""
+        kinds: set[str] = set()
+        forward = self.adjacency.get(a, {}).get(b)
+        if forward is not None:
+            kinds.add(forward)
+        backward = self.adjacency.get(b, {}).get(a)
+        if backward is not None:
+            kinds.add(backward)
+        return kinds
+
+    def best_friend_neighbors(self, user_id: str) -> set[str]:
+        """best_friend로 직접 연결된 이웃 집합."""
+        return {
+            nb
+            for nb in self.neighbors(user_id)
+            if "best_friend" in self.relation_kinds(user_id, nb)
+        }
+
+    def is_best_friend_of_best_friend(self, a: str, b: str) -> bool:
+        """'베스트 프렌드의 베스트 프렌드'(best_friend 간선 2단계)면 True.
+        단, 두 사람이 '직접' best_friend면 2단계로 보지 않는다(직접 관계 우선)."""
+        a_friends = self.best_friend_neighbors(a)
+        if b in a_friends:
+            return False
+        return bool(a_friends & self.best_friend_neighbors(b))
+
     @classmethod
     def from_edges(cls, edges: list[dict[str, str]]) -> "RelationshipGraph":
         graph = cls()

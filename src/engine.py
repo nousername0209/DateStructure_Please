@@ -30,6 +30,7 @@ class MatchAnalysis:
     hobby_distance: int
     travel_distance: float
     forbidden_path: list[str] | None
+    pass_threshold: int
 
 
 class MatchmakingEngine:
@@ -39,6 +40,9 @@ class MatchmakingEngine:
     SUCCESS_MATCH = 2    # 적합한 매칭을 승인했을 때 명성 상승치
     SUCCESS_REJECT = 1  # 부적합 매칭을 거절했을 때 명성 상승치
     PASS_SCORE = 60
+    # 관계 종류에 따라 통과 기준선을 동적으로 조정한다.
+    BEST_FRIEND_THRESHOLD_DELTA = 10       # 직접 베스트 프렌드: 기준 상향(맺어주기 어렵게)
+    FRIEND_OF_FRIEND_THRESHOLD_DELTA = -10  # 베스트 프렌드의 베스트 프렌드: 기준 하향(권장)
     MATCH_GRAPH_SIZE = 16  # 관계 그래프 패널에 한 번에 표시할 인원 수
 
     def __init__(
@@ -80,13 +84,23 @@ class MatchmakingEngine:
     ) -> MatchAnalysis:
         first = self.get_profile(first_id)   # 이진 탐색 호출
         second = self.get_profile(second_id) # 이진 탐색 호출
-        # 다단계 연쇄(A-B, B-C => A-C) 탐색을 제거. 직접 연결된 관계 또는
-        # 직접 블랙리스트(서로를 차단)만 거부 사유로 본다.
+        # 관계 종류에 따라 판정이 갈린다. 직접 ex_partner/scam_partner 또는 직접
+        # 블랙리스트(서로를 차단)만 '금지'(점수 0)이고, best_friend는 금지가 아니라
+        # 통과 기준선을 조정한다. 다단계 연쇄(A-B, B-C => A-C) 거부는 보지 않는다.
+        kinds = self.relationships.relation_kinds(first_id, second_id)
         blacklisted = second_id in first.get("blacklist", []) or first_id in second.get("blacklist", [])
-        if self.relationships.is_related(first_id, second_id) or blacklisted:
+        if blacklisted or (kinds & {"ex_partner", "scam_partner"}):
             forbidden_path = [first_id, second_id]
         else:
             forbidden_path = None
+
+        # 통과 기준선: 직접 베스트 프렌드(+10) > 베스트 프렌드의 베스트 프렌드(-10) > 기본.
+        if "best_friend" in kinds:
+            pass_threshold = self.PASS_SCORE + self.BEST_FRIEND_THRESHOLD_DELTA
+        elif self.relationships.is_best_friend_of_best_friend(first_id, second_id):
+            pass_threshold = self.PASS_SCORE + self.FRIEND_OF_FRIEND_THRESHOLD_DELTA
+        else:
+            pass_threshold = self.PASS_SCORE
 
         hobby_distance = self.hobbies.distance(first["hobby"], second["hobby"])
         travel_distance = self.map_graph.shortest_distance(first["city"], second["city"])
@@ -107,6 +121,7 @@ class MatchmakingEngine:
             hobby_distance=hobby_distance,
             travel_distance=travel_distance,
             forbidden_path=forbidden_path,
+            pass_threshold=pass_threshold,
         )
 
     def evaluate_match(
@@ -141,8 +156,17 @@ class MatchmakingEngine:
             penalty = int((analysis.travel_distance - long_distance_limit) * self.PENALTY_TRAVEL)
             reasons.append(f"거리가 너무 멂. 벌점 부과 : -{penalty}")
 
-        accepted = analysis.score >= self.PASS_SCORE
-        reasons.append("최종 승인 (적합한 매칭)" if accepted else "최종 거절 (기준 점수 미달)")
+        # 기본 기준선과 다르면 관계로 인한 조정 사유를 남긴다.
+        if analysis.pass_threshold > self.PASS_SCORE:
+            reasons.append(f"베스트 프렌드 관계: 통과 기준 +{analysis.pass_threshold - self.PASS_SCORE} ({analysis.pass_threshold})")
+        elif analysis.pass_threshold < self.PASS_SCORE:
+            reasons.append(f"베스트 프렌드의 베스트 프렌드: 통과 기준 {analysis.pass_threshold - self.PASS_SCORE} ({analysis.pass_threshold})")
+
+        accepted = analysis.score >= analysis.pass_threshold
+        reasons.append(
+            "최종 승인 (적합한 매칭)" if accepted
+            else f"최종 거절 (기준 점수 {analysis.pass_threshold}점 미달)"
+        )
         self.event_queue.enqueue("match_success" if accepted else "warning_print")
         return MatchResult(accepted, analysis.score, reasons)
 

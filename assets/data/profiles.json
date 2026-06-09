@@ -1976,304 +1976,1364 @@
   ],
   "relationships": [
     {
-      "from": "u034",
-      "to": "u139",
+      "from": "u001",
+      "to": "u047",
       "type": "best_friend"
     },
     {
-      "from": "u045",
+      "from": "u001",
+      "to": "u049",
+      "type": "best_friend"
+    },
+    {
+      "from": "u002",
+      "to": "u062",
+      "type": "best_friend"
+    },
+    {
+      "from": "u002",
+      "to": "u107",
+      "type": "best_friend"
+    },
+    {
+      "from": "u003",
       "to": "u029",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u007",
-      "to": "u034",
       "type": "best_friend"
     },
     {
-      "from": "u061",
-      "to": "u083",
-      "type": "best_friend"
-    },
-    {
-      "from": "u068",
-      "to": "u014",
-      "type": "best_friend"
-    },
-    {
-      "from": "u108",
-      "to": "u135",
-      "type": "best_friend"
-    },
-    {
-      "from": "u017",
-      "to": "u122",
-      "type": "best_friend"
-    },
-    {
-      "from": "u093",
-      "to": "u132",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u116",
-      "to": "u129",
-      "type": "best_friend"
-    },
-    {
-      "from": "u012",
-      "to": "u134",
-      "type": "best_friend"
-    },
-    {
-      "from": "u008",
-      "to": "u016",
+      "from": "u003",
+      "to": "u055",
       "type": "scam_partner"
     },
     {
-      "from": "u103",
-      "to": "u110",
-      "type": "ex_partner"
+      "from": "u003",
+      "to": "u067",
+      "type": "scam_partner"
     },
     {
-      "from": "u126",
-      "to": "u114",
-      "type": "best_friend"
-    },
-    {
-      "from": "u021",
-      "to": "u083",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u017",
-      "to": "u033",
-      "type": "best_friend"
-    },
-    {
-      "from": "u141",
-      "to": "u084",
-      "type": "best_friend"
-    },
-    {
-      "from": "u136",
-      "to": "u076",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u111",
-      "to": "u026",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u030",
-      "to": "u142",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u056",
-      "to": "u111",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u059",
-      "to": "u106",
-      "type": "best_friend"
-    },
-    {
-      "from": "u117",
+      "from": "u003",
       "to": "u103",
       "type": "best_friend"
     },
     {
-      "from": "u025",
-      "to": "u081",
-      "type": "best_friend"
-    },
-    {
-      "from": "u066",
-      "to": "u096",
-      "type": "scam_partner"
-    },
-    {
-      "from": "u122",
-      "to": "u018",
-      "type": "best_friend"
-    },
-    {
-      "from": "u022",
-      "to": "u024",
-      "type": "best_friend"
-    },
-    {
-      "from": "u096",
-      "to": "u034",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u144",
-      "to": "u085",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u106",
-      "to": "u091",
-      "type": "scam_partner"
-    },
-    {
-      "from": "u109",
-      "to": "u014",
-      "type": "scam_partner"
-    },
-    {
-      "from": "u080",
-      "to": "u091",
-      "type": "best_friend"
-    },
-    {
-      "from": "u130",
-      "to": "u055",
-      "type": "best_friend"
-    },
-    {
-      "from": "u124",
-      "to": "u058",
-      "type": "scam_partner"
-    },
-    {
-      "from": "u090",
-      "to": "u143",
-      "type": "best_friend"
-    },
-    {
-      "from": "u072",
-      "to": "u147",
-      "type": "best_friend"
-    },
-    {
-      "from": "u110",
-      "to": "u144",
-      "type": "scam_partner"
-    },
-    {
-      "from": "u143",
-      "to": "u007",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u069",
-      "to": "u008",
-      "type": "best_friend"
-    },
-    {
-      "from": "u080",
-      "to": "u087",
-      "type": "best_friend"
-    },
-    {
-      "from": "u047",
+      "from": "u004",
       "to": "u037",
+      "type": "best_friend"
+    },
+    {
+      "from": "u004",
+      "to": "u093",
+      "type": "best_friend"
+    },
+    {
+      "from": "u004",
+      "to": "u103",
+      "type": "best_friend"
+    },
+    {
+      "from": "u004",
+      "to": "u121",
+      "type": "best_friend"
+    },
+    {
+      "from": "u004",
+      "to": "u140",
+      "type": "best_friend"
+    },
+    {
+      "from": "u006",
+      "to": "u013",
+      "type": "best_friend"
+    },
+    {
+      "from": "u006",
+      "to": "u039",
+      "type": "best_friend"
+    },
+    {
+      "from": "u006",
+      "to": "u058",
+      "type": "best_friend"
+    },
+    {
+      "from": "u006",
+      "to": "u078",
+      "type": "best_friend"
+    },
+    {
+      "from": "u006",
+      "to": "u132",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u007",
+      "to": "u037",
+      "type": "best_friend"
+    },
+    {
+      "from": "u007",
+      "to": "u063",
       "type": "ex_partner"
     },
     {
-      "from": "u103",
-      "to": "u018",
+      "from": "u007",
+      "to": "u066",
+      "type": "best_friend"
+    },
+    {
+      "from": "u007",
+      "to": "u106",
+      "type": "best_friend"
+    },
+    {
+      "from": "u007",
+      "to": "u144",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u008",
+      "to": "u022",
       "type": "best_friend"
     },
     {
       "from": "u008",
-      "to": "u024",
+      "to": "u043",
       "type": "ex_partner"
     },
     {
-      "from": "u056",
-      "to": "u097",
+      "from": "u008",
+      "to": "u102",
       "type": "best_friend"
     },
     {
-      "from": "u088",
-      "to": "u041",
-      "type": "best_friend"
-    },
-    {
-      "from": "u084",
-      "to": "u146",
+      "from": "u008",
+      "to": "u148",
       "type": "ex_partner"
     },
     {
-      "from": "u014",
-      "to": "u040",
+      "from": "u009",
+      "to": "u015",
       "type": "best_friend"
     },
     {
-      "from": "u013",
+      "from": "u009",
+      "to": "u023",
+      "type": "best_friend"
+    },
+    {
+      "from": "u009",
+      "to": "u047",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u009",
+      "to": "u129",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u010",
+      "to": "u074",
+      "type": "best_friend"
+    },
+    {
+      "from": "u010",
+      "to": "u079",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u010",
+      "to": "u134",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u011",
+      "to": "u015",
+      "type": "best_friend"
+    },
+    {
+      "from": "u011",
+      "to": "u017",
+      "type": "best_friend"
+    },
+    {
+      "from": "u011",
       "to": "u021",
       "type": "best_friend"
     },
     {
-      "from": "u109",
-      "to": "u125",
-      "type": "ex_partner"
+      "from": "u011",
+      "to": "u091",
+      "type": "scam_partner"
     },
     {
-      "from": "u107",
-      "to": "u070",
-      "type": "best_friend"
-    },
-    {
-      "from": "u132",
-      "to": "u030",
-      "type": "best_friend"
-    },
-    {
-      "from": "u029",
-      "to": "u073",
-      "type": "ex_partner"
-    },
-    {
-      "from": "u125",
-      "to": "u135",
-      "type": "ex_partner"
+      "from": "u011",
+      "to": "u111",
+      "type": "scam_partner"
     },
     {
       "from": "u012",
-      "to": "u057",
+      "to": "u054",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u013",
+      "to": "u032",
+      "type": "best_friend"
+    },
+    {
+      "from": "u013",
+      "to": "u124",
+      "type": "best_friend"
+    },
+    {
+      "from": "u014",
+      "to": "u031",
+      "type": "best_friend"
+    },
+    {
+      "from": "u014",
+      "to": "u051",
       "type": "best_friend"
     },
     {
       "from": "u015",
-      "to": "u002",
-      "type": "best_friend"
-    },
-    {
-      "from": "u055",
-      "to": "u036",
+      "to": "u114",
       "type": "ex_partner"
     },
     {
-      "from": "u075",
+      "from": "u016",
+      "to": "u029",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u016",
+      "to": "u044",
+      "type": "best_friend"
+    },
+    {
+      "from": "u016",
+      "to": "u091",
+      "type": "best_friend"
+    },
+    {
+      "from": "u016",
+      "to": "u127",
+      "type": "best_friend"
+    },
+    {
+      "from": "u016",
+      "to": "u148",
+      "type": "best_friend"
+    },
+    {
+      "from": "u017",
+      "to": "u048",
+      "type": "best_friend"
+    },
+    {
+      "from": "u017",
+      "to": "u053",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u018",
+      "to": "u028",
+      "type": "best_friend"
+    },
+    {
+      "from": "u018",
+      "to": "u057",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u018",
+      "to": "u078",
+      "type": "best_friend"
+    },
+    {
+      "from": "u019",
+      "to": "u128",
+      "type": "best_friend"
+    },
+    {
+      "from": "u020",
+      "to": "u100",
+      "type": "best_friend"
+    },
+    {
+      "from": "u020",
+      "to": "u131",
+      "type": "best_friend"
+    },
+    {
+      "from": "u021",
+      "to": "u038",
+      "type": "best_friend"
+    },
+    {
+      "from": "u021",
+      "to": "u071",
+      "type": "best_friend"
+    },
+    {
+      "from": "u021",
+      "to": "u120",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u022",
+      "to": "u083",
+      "type": "best_friend"
+    },
+    {
+      "from": "u022",
+      "to": "u099",
+      "type": "best_friend"
+    },
+    {
+      "from": "u022",
+      "to": "u110",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u023",
+      "to": "u048",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u023",
+      "to": "u054",
+      "type": "best_friend"
+    },
+    {
+      "from": "u024",
       "to": "u084",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u024",
+      "to": "u096",
       "type": "best_friend"
     },
     {
-      "from": "u128",
-      "to": "u111",
+      "from": "u025",
+      "to": "u036",
       "type": "best_friend"
     },
     {
-      "from": "u098",
-      "to": "u137",
+      "from": "u025",
+      "to": "u061",
+      "type": "best_friend"
+    },
+    {
+      "from": "u025",
+      "to": "u064",
+      "type": "best_friend"
+    },
+    {
+      "from": "u025",
+      "to": "u105",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u025",
+      "to": "u133",
       "type": "ex_partner"
     },
     {
-      "from": "u129",
+      "from": "u026",
+      "to": "u069",
+      "type": "best_friend"
+    },
+    {
+      "from": "u026",
+      "to": "u086",
+      "type": "best_friend"
+    },
+    {
+      "from": "u026",
+      "to": "u090",
+      "type": "best_friend"
+    },
+    {
+      "from": "u026",
+      "to": "u100",
+      "type": "best_friend"
+    },
+    {
+      "from": "u027",
+      "to": "u073",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u027",
+      "to": "u114",
+      "type": "best_friend"
+    },
+    {
+      "from": "u028",
+      "to": "u048",
+      "type": "best_friend"
+    },
+    {
+      "from": "u028",
+      "to": "u083",
+      "type": "best_friend"
+    },
+    {
+      "from": "u028",
+      "to": "u100",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u028",
+      "to": "u130",
+      "type": "best_friend"
+    },
+    {
+      "from": "u029",
+      "to": "u135",
+      "type": "best_friend"
+    },
+    {
+      "from": "u030",
+      "to": "u074",
+      "type": "best_friend"
+    },
+    {
+      "from": "u030",
+      "to": "u104",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u030",
+      "to": "u141",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u031",
+      "to": "u072",
+      "type": "best_friend"
+    },
+    {
+      "from": "u031",
+      "to": "u092",
+      "type": "best_friend"
+    },
+    {
+      "from": "u031",
+      "to": "u096",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u031",
+      "to": "u135",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u032",
+      "to": "u074",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u033",
+      "to": "u054",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u033",
+      "to": "u064",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u033",
+      "to": "u108",
+      "type": "best_friend"
+    },
+    {
+      "from": "u033",
+      "to": "u123",
+      "type": "best_friend"
+    },
+    {
+      "from": "u033",
+      "to": "u136",
+      "type": "best_friend"
+    },
+    {
+      "from": "u034",
+      "to": "u038",
+      "type": "best_friend"
+    },
+    {
+      "from": "u034",
+      "to": "u057",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u034",
+      "to": "u080",
+      "type": "best_friend"
+    },
+    {
+      "from": "u034",
+      "to": "u086",
+      "type": "best_friend"
+    },
+    {
+      "from": "u035",
+      "to": "u087",
+      "type": "best_friend"
+    },
+    {
+      "from": "u035",
+      "to": "u101",
+      "type": "best_friend"
+    },
+    {
+      "from": "u035",
+      "to": "u138",
+      "type": "best_friend"
+    },
+    {
+      "from": "u036",
+      "to": "u061",
+      "type": "best_friend"
+    },
+    {
+      "from": "u036",
+      "to": "u101",
+      "type": "best_friend"
+    },
+    {
+      "from": "u036",
+      "to": "u103",
+      "type": "best_friend"
+    },
+    {
+      "from": "u037",
+      "to": "u074",
+      "type": "best_friend"
+    },
+    {
+      "from": "u038",
+      "to": "u046",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u039",
+      "to": "u081",
+      "type": "best_friend"
+    },
+    {
+      "from": "u039",
+      "to": "u131",
+      "type": "best_friend"
+    },
+    {
+      "from": "u040",
+      "to": "u131",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u041",
+      "to": "u054",
+      "type": "best_friend"
+    },
+    {
+      "from": "u041",
+      "to": "u089",
+      "type": "best_friend"
+    },
+    {
+      "from": "u041",
+      "to": "u119",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u041",
+      "to": "u133",
+      "type": "best_friend"
+    },
+    {
+      "from": "u041",
+      "to": "u138",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u042",
+      "to": "u045",
+      "type": "best_friend"
+    },
+    {
+      "from": "u042",
+      "to": "u046",
+      "type": "best_friend"
+    },
+    {
+      "from": "u042",
+      "to": "u072",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u042",
+      "to": "u077",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u042",
+      "to": "u079",
+      "type": "best_friend"
+    },
+    {
+      "from": "u042",
+      "to": "u092",
+      "type": "best_friend"
+    },
+    {
+      "from": "u042",
+      "to": "u097",
+      "type": "best_friend"
+    },
+    {
+      "from": "u043",
+      "to": "u049",
+      "type": "best_friend"
+    },
+    {
+      "from": "u043",
+      "to": "u063",
+      "type": "best_friend"
+    },
+    {
+      "from": "u043",
+      "to": "u092",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u043",
+      "to": "u097",
+      "type": "best_friend"
+    },
+    {
+      "from": "u044",
+      "to": "u144",
+      "type": "best_friend"
+    },
+    {
+      "from": "u044",
+      "to": "u146",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u045",
+      "to": "u052",
+      "type": "best_friend"
+    },
+    {
+      "from": "u045",
+      "to": "u055",
+      "type": "best_friend"
+    },
+    {
+      "from": "u045",
+      "to": "u095",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u045",
+      "to": "u132",
+      "type": "best_friend"
+    },
+    {
+      "from": "u046",
+      "to": "u047",
+      "type": "best_friend"
+    },
+    {
+      "from": "u046",
+      "to": "u107",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u047",
+      "to": "u056",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u047",
+      "to": "u071",
+      "type": "best_friend"
+    },
+    {
+      "from": "u049",
       "to": "u144",
       "type": "scam_partner"
     },
     {
-      "from": "u091",
-      "to": "u019",
+      "from": "u050",
+      "to": "u056",
       "type": "best_friend"
+    },
+    {
+      "from": "u050",
+      "to": "u076",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u051",
+      "to": "u111",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u051",
+      "to": "u138",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u052",
+      "to": "u143",
+      "type": "best_friend"
+    },
+    {
+      "from": "u053",
+      "to": "u104",
+      "type": "best_friend"
+    },
+    {
+      "from": "u053",
+      "to": "u112",
+      "type": "best_friend"
+    },
+    {
+      "from": "u053",
+      "to": "u146",
+      "type": "best_friend"
+    },
+    {
+      "from": "u054",
+      "to": "u102",
+      "type": "best_friend"
+    },
+    {
+      "from": "u055",
+      "to": "u075",
+      "type": "best_friend"
+    },
+    {
+      "from": "u055",
+      "to": "u148",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u056",
+      "to": "u086",
+      "type": "best_friend"
+    },
+    {
+      "from": "u056",
+      "to": "u100",
+      "type": "best_friend"
+    },
+    {
+      "from": "u057",
+      "to": "u120",
+      "type": "best_friend"
+    },
+    {
+      "from": "u057",
+      "to": "u138",
+      "type": "best_friend"
+    },
+    {
+      "from": "u058",
+      "to": "u076",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u058",
+      "to": "u086",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u058",
+      "to": "u117",
+      "type": "best_friend"
+    },
+    {
+      "from": "u059",
+      "to": "u064",
+      "type": "best_friend"
+    },
+    {
+      "from": "u059",
+      "to": "u072",
+      "type": "best_friend"
+    },
+    {
+      "from": "u059",
+      "to": "u080",
+      "type": "best_friend"
+    },
+    {
+      "from": "u059",
+      "to": "u094",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u059",
+      "to": "u103",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u059",
+      "to": "u104",
+      "type": "best_friend"
+    },
+    {
+      "from": "u059",
+      "to": "u109",
+      "type": "best_friend"
+    },
+    {
+      "from": "u060",
+      "to": "u096",
+      "type": "best_friend"
+    },
+    {
+      "from": "u060",
+      "to": "u109",
+      "type": "best_friend"
+    },
+    {
+      "from": "u060",
+      "to": "u146",
+      "type": "best_friend"
+    },
+    {
+      "from": "u061",
+      "to": "u090",
+      "type": "best_friend"
+    },
+    {
+      "from": "u061",
+      "to": "u113",
+      "type": "best_friend"
+    },
+    {
+      "from": "u061",
+      "to": "u136",
+      "type": "best_friend"
+    },
+    {
+      "from": "u062",
+      "to": "u072",
+      "type": "best_friend"
+    },
+    {
+      "from": "u062",
+      "to": "u088",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u062",
+      "to": "u115",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u063",
+      "to": "u143",
+      "type": "best_friend"
+    },
+    {
+      "from": "u064",
+      "to": "u141",
+      "type": "best_friend"
+    },
+    {
+      "from": "u065",
+      "to": "u120",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u065",
+      "to": "u122",
+      "type": "best_friend"
+    },
+    {
+      "from": "u065",
+      "to": "u130",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u066",
+      "to": "u073",
+      "type": "best_friend"
+    },
+    {
+      "from": "u066",
+      "to": "u137",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u067",
+      "to": "u089",
+      "type": "best_friend"
+    },
+    {
+      "from": "u068",
+      "to": "u071",
+      "type": "best_friend"
+    },
+    {
+      "from": "u068",
+      "to": "u081",
+      "type": "best_friend"
+    },
+    {
+      "from": "u068",
+      "to": "u096",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u068",
+      "to": "u100",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u068",
+      "to": "u118",
+      "type": "best_friend"
+    },
+    {
+      "from": "u068",
+      "to": "u129",
+      "type": "best_friend"
+    },
+    {
+      "from": "u069",
+      "to": "u123",
+      "type": "best_friend"
+    },
+    {
+      "from": "u070",
+      "to": "u110",
+      "type": "best_friend"
+    },
+    {
+      "from": "u070",
+      "to": "u116",
+      "type": "best_friend"
+    },
+    {
+      "from": "u071",
+      "to": "u084",
+      "type": "best_friend"
+    },
+    {
+      "from": "u071",
+      "to": "u094",
+      "type": "best_friend"
+    },
+    {
+      "from": "u071",
+      "to": "u095",
+      "type": "best_friend"
+    },
+    {
+      "from": "u073",
+      "to": "u140",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u074",
+      "to": "u118",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u074",
+      "to": "u145",
+      "type": "best_friend"
+    },
+    {
+      "from": "u075",
+      "to": "u097",
+      "type": "best_friend"
+    },
+    {
+      "from": "u075",
+      "to": "u113",
+      "type": "best_friend"
+    },
+    {
+      "from": "u076",
+      "to": "u097",
+      "type": "best_friend"
+    },
+    {
+      "from": "u076",
+      "to": "u108",
+      "type": "best_friend"
+    },
+    {
+      "from": "u077",
+      "to": "u099",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u077",
+      "to": "u132",
+      "type": "best_friend"
+    },
+    {
+      "from": "u078",
+      "to": "u145",
+      "type": "best_friend"
+    },
+    {
+      "from": "u079",
+      "to": "u127",
+      "type": "best_friend"
+    },
+    {
+      "from": "u079",
+      "to": "u142",
+      "type": "best_friend"
+    },
+    {
+      "from": "u080",
+      "to": "u098",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u080",
+      "to": "u139",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u083",
+      "to": "u130",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u084",
+      "to": "u113",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u084",
+      "to": "u119",
+      "type": "best_friend"
+    },
+    {
+      "from": "u085",
+      "to": "u117",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u085",
+      "to": "u125",
+      "type": "best_friend"
+    },
+    {
+      "from": "u085",
+      "to": "u132",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u086",
+      "to": "u093",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u086",
+      "to": "u142",
+      "type": "best_friend"
+    },
+    {
+      "from": "u087",
+      "to": "u103",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u087",
+      "to": "u116",
+      "type": "best_friend"
+    },
+    {
+      "from": "u087",
+      "to": "u127",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u087",
+      "to": "u143",
+      "type": "best_friend"
+    },
+    {
+      "from": "u088",
+      "to": "u107",
+      "type": "best_friend"
+    },
+    {
+      "from": "u090",
+      "to": "u112",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u090",
+      "to": "u124",
+      "type": "best_friend"
+    },
+    {
+      "from": "u091",
+      "to": "u107",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u093",
+      "to": "u112",
+      "type": "best_friend"
+    },
+    {
+      "from": "u093",
+      "to": "u122",
+      "type": "best_friend"
+    },
+    {
+      "from": "u094",
+      "to": "u124",
+      "type": "best_friend"
+    },
+    {
+      "from": "u094",
+      "to": "u125",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u095",
+      "to": "u147",
+      "type": "best_friend"
+    },
+    {
+      "from": "u095",
+      "to": "u149",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u097",
+      "to": "u100",
+      "type": "best_friend"
+    },
+    {
+      "from": "u097",
+      "to": "u137",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u098",
+      "to": "u121",
+      "type": "best_friend"
+    },
+    {
+      "from": "u099",
+      "to": "u105",
+      "type": "best_friend"
+    },
+    {
+      "from": "u099",
+      "to": "u119",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u099",
+      "to": "u129",
+      "type": "best_friend"
+    },
+    {
+      "from": "u101",
+      "to": "u134",
+      "type": "best_friend"
+    },
+    {
+      "from": "u101",
+      "to": "u147",
+      "type": "best_friend"
+    },
+    {
+      "from": "u102",
+      "to": "u104",
+      "type": "best_friend"
+    },
+    {
+      "from": "u102",
+      "to": "u112",
+      "type": "best_friend"
+    },
+    {
+      "from": "u103",
+      "to": "u120",
+      "type": "best_friend"
+    },
+    {
+      "from": "u103",
+      "to": "u132",
+      "type": "best_friend"
+    },
+    {
+      "from": "u106",
+      "to": "u123",
+      "type": "best_friend"
+    },
+    {
+      "from": "u106",
+      "to": "u134",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u107",
+      "to": "u109",
+      "type": "best_friend"
+    },
+    {
+      "from": "u107",
+      "to": "u117",
+      "type": "best_friend"
+    },
+    {
+      "from": "u107",
+      "to": "u140",
+      "type": "best_friend"
+    },
+    {
+      "from": "u108",
+      "to": "u144",
+      "type": "best_friend"
+    },
+    {
+      "from": "u109",
+      "to": "u142",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u110",
+      "to": "u149",
+      "type": "best_friend"
+    },
+    {
+      "from": "u111",
+      "to": "u134",
+      "type": "best_friend"
+    },
+    {
+      "from": "u111",
+      "to": "u139",
+      "type": "best_friend"
+    },
+    {
+      "from": "u113",
+      "to": "u124",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u113",
+      "to": "u140",
+      "type": "best_friend"
+    },
+    {
+      "from": "u114",
+      "to": "u136",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u115",
+      "to": "u128",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u115",
+      "to": "u133",
+      "type": "best_friend"
+    },
+    {
+      "from": "u115",
+      "to": "u143",
+      "type": "best_friend"
+    },
+    {
+      "from": "u116",
+      "to": "u121",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u119",
+      "to": "u147",
+      "type": "best_friend"
+    },
+    {
+      "from": "u121",
+      "to": "u143",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u122",
+      "to": "u133",
+      "type": "best_friend"
+    },
+    {
+      "from": "u125",
+      "to": "u144",
+      "type": "best_friend"
+    },
+    {
+      "from": "u126",
+      "to": "u127",
+      "type": "best_friend"
+    },
+    {
+      "from": "u127",
+      "to": "u145",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u129",
+      "to": "u147",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u131",
+      "to": "u147",
+      "type": "ex_partner"
+    },
+    {
+      "from": "u132",
+      "to": "u140",
+      "type": "best_friend"
+    },
+    {
+      "from": "u133",
+      "to": "u149",
+      "type": "scam_partner"
+    },
+    {
+      "from": "u135",
+      "to": "u146",
+      "type": "best_friend"
+    },
+    {
+      "from": "u137",
+      "to": "u139",
+      "type": "best_friend"
+    },
+    {
+      "from": "u138",
+      "to": "u143",
+      "type": "best_friend"
+    },
+    {
+      "from": "u139",
+      "to": "u142",
+      "type": "ex_partner"
     }
   ]
 }

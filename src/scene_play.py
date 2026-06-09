@@ -1,6 +1,5 @@
 from array import array
 from dataclasses import dataclass
-import itertools
 import math
 from pathlib import Path
 import random
@@ -218,22 +217,42 @@ class AssetPopup(UILayer):
             ui.screen.blit(label, label.get_rect(center=(pos[0], pos[1] + 18)))
 
     def _draw_relationship_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
-        nodes = list(scene.engine.relationships.adjacency.keys())
-        if not nodes:
+        # 현재 페어 기준 15명만 표시(페어가 바뀔 때만 재계산되는 캐시).
+        members = scene._relationship_members()
+        if not members:
             return
-        radius = min(area.width, area.height) // 2 - 58
+        member_set = set(members)
+        first, second = scene._current_pair()
+        matched = {first["id"], second["id"]}
+        adjacency = scene.engine.relationships.adjacency
+        radius = min(area.width, area.height) // 2 - 20
+        # 심사 중인 두 사람을 원의 정반대(위/아래)에 배치하고, 나머지는 빈 자리를 순서대로 채운다.
+        n = len(members)
+        half = n // 2
+        ordered: list[str | None] = [None] * n
+        ordered[0] = members[0]       # first → 맨 위
+        ordered[half] = members[1]    # second → 정반대편
+        open_slots = [i for i in range(n) if ordered[i] is None]
+        for slot, node in zip(open_slots, members[2:]):
+            ordered[slot] = node
         coords = {}
-        for i, node in enumerate(nodes):
-            angle = 2 * math.pi * i / len(nodes) - math.pi / 2
-            coords[node] = (int(area.centerx + math.cos(angle) * radius), int(area.centery + math.sin(angle) * radius))
-        # 관계는 방향이 없으므로 화살표 없이 색상 선으로만 연결을 표시한다.
-        for source, targets in scene.engine.relationships.adjacency.items():
-            for target, kind in targets.items():
-                color = REL_COLORS.get(kind, REL_DEFAULT_COLOR)
-                pygame.draw.line(ui.screen, color, coords[source], coords[target], 2)
-        for node, pos in coords.items():
+        for pos, node in enumerate(ordered):
+            angle = 2 * math.pi * pos / n - math.pi / 2
+            coords[node] = (int(area.centerx - 100 + math.cos(angle) * radius), int(area.centery + math.sin(angle) * radius))
+        # 선택된 15명 사이의 간선만(유도 부분그래프) 그린다. 관계는 방향이 없으므로 화살표 없이 색상 선.
+        for source in members:
+            for target, kind in adjacency.get(source, {}).items():
+                if target in member_set:
+                    color = REL_COLORS.get(kind, REL_DEFAULT_COLOR)
+                    pygame.draw.line(ui.screen, color, coords[source], coords[target], 2)
+        for node in members:
+            pos = coords[node]
             pygame.draw.circle(ui.screen, CARD, pos, 22)
-            pygame.draw.circle(ui.screen, INK, pos, 22, 2)
+            # 심사 중인 두 사람은 초록 링으로 강조해 한눈에 찾도록 한다.
+            if node in matched:
+                pygame.draw.circle(ui.screen, ACCENT, pos, 22, 4)
+            else:
+                pygame.draw.circle(ui.screen, INK, pos, 22, 2)
             label = ui.fonts["small"].render(node, True, INK)
             ui.screen.blit(label, label.get_rect(center=pos))
         self._draw_rel_legend(ui, area)
@@ -241,7 +260,7 @@ class AssetPopup(UILayer):
     def _draw_rel_legend(self, ui: UIContext, area: pygame.Rect) -> None:
         rows = [("best_friend", ACCENT), ("ex_partner", BLUE), ("scam_partner", WARN)]
         pad, row_h, seg = 10, 24, 34
-        box_w, box_h = 178, pad * 2 + row_h * len(rows)
+        box_w, box_h = 178, pad * 2 + row_h * (len(rows) + 1)
         box = pygame.Rect(area.right - box_w, area.y, box_w, box_h)
         pygame.draw.rect(ui.screen, CARD, box, border_radius=8)
         pygame.draw.rect(ui.screen, LINE, box, 1, border_radius=8)
@@ -251,6 +270,13 @@ class AssetPopup(UILayer):
             pygame.draw.line(ui.screen, color, (x1, cy), (x1 + seg, cy), 3)
             label = ui.fonts["small"].render(kind, True, INK)
             ui.screen.blit(label, (x1 + seg + 10, cy - label.get_height() // 2))
+        # 심사 중인 두 사람을 표시하는 초록 링 안내
+        cy = box.y + pad + row_h * len(rows) + row_h // 2
+        x1 = box.x + pad
+        pygame.draw.circle(ui.screen, CARD, (x1 + seg // 2, cy), 9)
+        pygame.draw.circle(ui.screen, ACCENT, (x1 + seg // 2, cy), 9, 3)
+        label = ui.fonts["small"].render("matched pair", True, INK)
+        ui.screen.blit(label, (x1 + seg + 10, cy - label.get_height() // 2))
 
     def _draw_hobby_tree(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
         root = scene.engine.hobbies.root
@@ -290,9 +316,15 @@ class PlayScene:
     def __init__(self, engine: MatchmakingEngine) -> None:
         self.engine = engine
         self.profiles = self.engine.priority_profiles()
-        self.match_queue = list(itertools.combinations(self.profiles, 2))
-        random.shuffle(self.match_queue)
+        # 남성/여성 풀을 나눠두고 각 풀에서 한 명씩 뽑아 항상 이성 페어만 만든다.
+        self._males = [p for p in self.profiles if p.get("gender") == "male"]
+        self._females = [p for p in self.profiles if p.get("gender") == "female"]
+        # 모든 조합을 미리 만들지 않고(프로필 수가 커지면 폭증) 매 라운드 무작위 페어를 즉석에서 뽑는다.
         self.pair_index = 0
+        self.current_pair = self._random_pair()
+        # 관계 그래프에 표시할 15명은 페어가 바뀔 때만 다시 계산하도록 캐시한다.
+        self._graph_members: list[str] = []
+        self._graph_cache_index = -1
         self.game_state = "playing"
         self.message_queue = deque()
         self.buttons: list[Button] = []
@@ -344,8 +376,22 @@ class PlayScene:
         if sound is not None:
             sound.play()
 
+    def _random_pair(self) -> tuple[dict, dict]:
+        # 남성 풀과 여성 풀에서 각각 한 명씩 뽑아 항상 이성 페어를 구성한다.
+        pair = [random.choice(self._males), random.choice(self._females)]
+        random.shuffle(pair)  # 카드 좌/우 성별이 항상 고정되지 않도록 순서를 섞는다.
+        return pair[0], pair[1]
+
     def _current_pair(self) -> tuple[dict, dict]:
-        return self.match_queue[self.pair_index % len(self.match_queue)]
+        return self.current_pair
+
+    def _relationship_members(self) -> list[str]:
+        """현재 페어 기준으로 관계 그래프에 표시할 15명. 페어가 바뀔 때만 재계산한다."""
+        if self._graph_cache_index != self.pair_index:
+            first, second = self._current_pair()
+            self._graph_members = self.engine.select_graph_members(first["id"], second["id"])
+            self._graph_cache_index = self.pair_index
+        return self._graph_members
 
     def _analysis(self) -> MatchAnalysis:
         first, second = self._current_pair()
@@ -385,25 +431,33 @@ class PlayScene:
         result = self.engine.evaluate_match(first["id"], second["id"])
         if result.accepted:
             self._play_sound("success")
+            # 적합한 매칭 승인 시 SUCCESS_MATCH만큼 명성 상승 (명성 바 최대치 100으로 클램프)
+            self.engine.reputation = min(100, self.engine.reputation + self.engine.SUCCESS_MATCH)
             self.message_queue.append("승인 성공! 적합한 매칭입니다.")
         else:
             self._play_sound("error")
             self.engine.reputation = max(0, self.engine.reputation - 10)
             self.message_queue.append(f"오심! 부적합 매칭 승인. 사유: {' / '.join(result.reasons)}")
-        self.pair_index += 1
-        self._update_game_state()
+        self._advance()
 
     def _reject_pair(self) -> None:
         first, second = self._current_pair()
         result = self.engine.evaluate_match(first["id"], second["id"])
         if not result.accepted:
             self._play_sound("success")
+            # 올바른 거절도 성공한 판단이므로 SUCCESS_REJECT만큼 명성 상승
+            self.engine.reputation = min(100, self.engine.reputation + self.engine.SUCCESS_REJECT)
             self.message_queue.append(f"정확한 판단입니다! 사유: {result.reasons[0]}")
         else:
             self._play_sound("error")
             self.engine.reputation = max(0, self.engine.reputation - 10)
             self.message_queue.append("오심입니다! 적합한 매칭을 거절했습니다.")
+        self._advance()
+
+    def _advance(self) -> None:
+        """다음 라운드로. 무작위 페어를 새로 뽑고 게임 상태를 갱신한다."""
         self.pair_index += 1
+        self.current_pair = self._random_pair()
         self._update_game_state()
 
     def close_top_layer(self) -> None:
@@ -512,11 +566,7 @@ class PlayScene:
         panel = pygame.Rect(278, 402, 404, 76)
         pygame.draw.rect(ui.screen, CARD, panel, border_radius=10)
         pygame.draw.rect(ui.screen, LINE, panel, 2, border_radius=10)
-        same_gender = analysis.first.get("gender") == analysis.second.get("gender")
-        if same_gender:
-            text = "Same gender pair detected: press REJECT"
-            color = WARN
-        elif analysis.forbidden_path is not None:
+        if analysis.forbidden_path is not None:
             text = "Relationship conflict detected: press REJECT"
             color = WARN
         else:
@@ -524,6 +574,8 @@ class PlayScene:
             color = ACCENT
         ui.text("body", text, (panel.x + 22, panel.y + 17), color)
         ui.text("small", "Use gender, city, hobby, and relation graphs to decide.", (panel.x + 22, panel.y + 46), MUTED)
+        # 디버그용: 시스템이 계산한 점수를 박스 오른쪽 20px 지점에 표시
+        ui.text("body", f"score: {analysis.score}", (panel.right + 20, panel.y + 17), INK)
 
     def _draw_asset_buttons(self, ui: UIContext) -> None:
         panel = pygame.Rect(278, 492, 404, 74)
@@ -541,11 +593,9 @@ class PlayScene:
             ui.text("small", self.notice_text, (56, 592), WARN)
 
     def _update_game_state(self) -> None:
+        # 무작위 페어가 끝없이 이어지므로 종료 조건은 명성 소진뿐이다.
         if self.engine.reputation <= 0:
             self.game_state = "game_over"
-            self.engine.ui_stack.clear()
-        elif self.pair_index >= len(self.match_queue):
-            self.game_state = "clear"
             self.engine.ui_stack.clear()
 
     def _draw_end_screen(self, ui: UIContext) -> None:
@@ -567,7 +617,8 @@ class PlayScene:
         self.game_state = "playing"
         self.pair_index = 0
         self.engine.reputation = 80
-        random.shuffle(self.match_queue)
+        self.current_pair = self._random_pair()
+        self._graph_cache_index = -1  # 캐시 무효화(재시작 후 pair_index가 다시 0이 되므로)
         self.message_queue.clear()
         self.notice_text = ""
         self.notice_timer = 0.0

@@ -44,8 +44,17 @@ byte-compiling and by running the game.
   The forbidden check is **direct-only** (`is_related` + direct blacklist): only a direct relationship
   link between the two profiles — or one blacklisting the other — rejects the pair. There is **no
   multi-hop chaining** (A–B and B–C do *not* reject A–C); when forbidden, the recorded
-  `forbidden_path` is simply `[first_id, second_id]`.
-- **`src/scene_play.py`** — all UI/rendering. `PlayScene` runs the event/update/draw loop. UI is
+  `forbidden_path` is simply `[first_id, second_id]`. `select_graph_members(first, second)` picks the
+  `MATCH_GRAPH_SIZE` (16) people shown in the relationship panel — a **BFS** outward from the pair
+  (closest relations first), then random fill once the connected set is exhausted (fills are decoys;
+  they can't change the verdict, which is direct-only). The panel places the two matched profiles on
+  opposite sides of the circle (top/bottom).
+- **`src/scene_play.py`** — all UI/rendering. `PlayScene` runs the event/update/draw loop. Match pairs
+  are drawn **lazily at random** (`_random_pair` via `random.sample`; `current_pair` advanced in
+  `_advance`) — there is no precomputed combination queue, so the game is an endless stream that ends
+  only when reputation hits 0 (no STAGE CLEAR). The relationship panel shows only the cached 15-member
+  induced subgraph (`_relationship_members`, recomputed per pair), with the two matched profiles drawn
+  with a green highlight ring. UI is
   immediate-mode: each frame, drawing code calls `ui.button(...)` which both draws and registers the
   button into `ui.buttons`; after drawing, `self.buttons = ui.buttons`, and `_handle_click` routes by
   `button.action` string. Overlays use the **`UILayer` + `UIStack`** pattern: the top layer
@@ -55,8 +64,9 @@ byte-compiling and by running the game.
   generated procedurally at runtime — no image or audio asset files are loaded.
 - **`src/structures/`** — the data structures the project exists to demonstrate:
   - `relationship_graph.py` — undirected relationship graph; `is_related()` checks a **direct** link
-    between two users (no path traversal). Each edge stores a `kind` (e.g. `best_friend`/`ex_partner`/
-    `scam_partner`). (`has_path()` is a leftover BFS demo, not used by game logic.)
+    between two users (no path traversal); `neighbors()` returns a user's direct (direction-ignoring)
+    neighbors and powers the BFS in `engine.select_graph_members`. Each edge stores a `kind` (e.g.
+    `best_friend`/`ex_partner`/`scam_partner`). (`has_path()` is a leftover BFS demo, not used by game logic.)
   - `hobby_tree.py` — general tree; LCA-based `distance()` for hobby compatibility.
   - `map_graph.py` — weighted undirected graph; Dijkstra `shortest_distance()` for travel penalties.
   - `ui_stack.py` — generic stack for UI overlays.

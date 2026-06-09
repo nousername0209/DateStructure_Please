@@ -40,6 +40,14 @@ class RelationshipGraph:
         다단계 연쇄(A-B, B-C => A-C)는 보지 않는다."""
         return b in self.adjacency.get(a, {}) or a in self.adjacency.get(b, {})
 
+    def neighbors(self, user_id: str) -> set[str]:
+        """방향을 무시한 직접 이웃 집합. 저장된 방향(나가는 간선)과 들어오는 간선을 모두 본다."""
+        result = set(self.adjacency.get(user_id, {}).keys())
+        for source, targets in self.adjacency.items():
+            if user_id in targets:
+                result.add(source)
+        return result
+
     @classmethod
     def from_edges(cls, edges: list[dict[str, str]]) -> "RelationshipGraph":
         graph = cls()

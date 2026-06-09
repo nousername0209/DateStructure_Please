@@ -1,54 +1,46 @@
 {
   "routes": [
-    {
-      "from": "Seoul",
-      "to": "Daejeon",
-      "distance": 1.5
-    },
-    {
-      "from": "Seoul",
-      "to": "Gangneung",
-      "distance": 2.0
-    },
-    {
-      "from": "Daejeon",
-      "to": "Gangneung",
-      "distance": 2.5
-    },
-    {
-      "from": "Daejeon",
-      "to": "Busan",
-      "distance": 2.5
-    },
-    {
-      "from": "Gangneung",
-      "to": "Busan",
-      "distance": 3.5
-    },
-    {
-      "from": "Busan",
-      "to": "Jeju",
-      "distance": 3.0
-    },
-    {
-      "from": "Seoul",
-      "to": "Incheon",
-      "distance": 0.5
-    },
-    {
-      "from": "Incheon",
-      "to": "Daejeon",
-      "distance": 1.8
-    },
-    {
-      "from": "Daejeon",
-      "to": "Gwangju",
-      "distance": 1.5
-    },
-    {
-      "from": "Gwangju",
-      "to": "Busan",
-      "distance": 1.5
-    }
+    { "from": "Seoul", "to": "Incheon", "distance": 40 },
+    { "from": "Seoul", "to": "Suwon", "distance": 35 },
+    { "from": "Suwon", "to": "Yongin", "distance": 20 },
+    { "from": "Suwon", "to": "Incheon", "distance": 45 },
+    { "from": "Suwon", "to": "Sejong", "distance": 100 },
+    { "from": "Sejong", "to": "Daejeon", "distance": 20 },
+    { "from": "Seoul", "to": "Gangneung", "distance": 230 },
+    { "from": "Gangneung", "to": "Pohang", "distance": 180 },
+    { "from": "Pohang", "to": "Daegu", "distance": 90 },
+    { "from": "Pohang", "to": "Ulsan", "distance": 70 },
+    { "from": "Daegu", "to": "Ulsan", "distance": 90 },
+    { "from": "Ulsan", "to": "Busan", "distance": 55 },
+    { "from": "Daegu", "to": "Busan", "distance": 90 },
+    { "from": "Daejeon", "to": "Daegu", "distance": 150 },
+    { "from": "Daejeon", "to": "Jeonju", "distance": 90 },
+    { "from": "Jeonju", "to": "Gwangju", "distance": 100 },
+    { "from": "Gwangju", "to": "Busan", "distance": 260 },
+    { "from": "Busan", "to": "Jeju", "distance": 300 },
+    { "from": "Seoul", "to": "Yongin", "distance": 40 },
+    { "from": "Wonju", "to": "Gangneung", "distance": 100 },
+    { "from": "Sejong", "to": "Jeonju", "distance": 85 },
+    { "from": "Yongin", "to": "Daejeon", "distance": 110 },
+    { "from": "Wonju", "to": "Daegu", "distance": 170 },
+    { "from": "Wonju", "to": "Pohang", "distance": 200 },
+    { "from": "Yongin", "to": "Wonju", "distance": 70 }
+  ],
+  "cities": [
+    { "name": "Seoul",     "x": 0.22, "y": 0.00 },
+    { "name": "Incheon",   "x": 0.02, "y": 0.07 },
+    { "name": "Suwon",     "x": 0.16, "y": 0.2 },
+    { "name": "Yongin",    "x": 0.32, "y": 0.19 },
+    { "name": "Sejong",    "x": 0.20, "y": 0.4 },
+    { "name": "Daejeon",   "x": 0.36, "y": 0.45 },
+    { "name": "Gangneung", "x": 0.86, "y": 0.10 },
+    { "name": "Jeonju",    "x": 0.24, "y": 0.65 },
+    { "name": "Gwangju",   "x": 0.14, "y": 0.78 },
+    { "name": "Wonju",     "x": 0.70, "y": 0.20 },
+    { "name": "Daegu",     "x": 0.64, "y": 0.44 },
+    { "name": "Pohang",    "x": 0.94, "y": 0.38 },
+    { "name": "Ulsan",     "x": 0.90, "y": 0.58 },
+    { "name": "Busan",     "x": 0.72, "y": 0.66 },
+    { "name": "Jeju",      "x": 0.50, "y": 0.95 }
   ]
 }

@@ -177,14 +177,23 @@ class AssetPopup(UILayer):
 
     def _draw_city_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
         graph = scene.engine.map_graph.adjacency
+        positions = scene.engine.map_graph.positions
         cities = list(graph.keys())
         if not cities:
             return
+        # 한반도 모양을 본뜬 고정 좌표(정규화 0..1)를 패널 안쪽 사각형으로 매핑.
+        # 좌표가 없는 도시는 기존 원형 배치로 폴백한다.
+        margin = 10  # 노드 반지름(18) + 라벨 여백
+        inner = area.inflate(-margin * 2, -margin * 2)
         radius = min(area.width, area.height) // 2 - 44
         coords = {}
         for i, city in enumerate(cities):
-            angle = 2 * math.pi * i / len(cities) - math.pi / 2
-            coords[city] = (int(area.centerx + math.cos(angle) * radius), int(area.centery + math.sin(angle) * radius))
+            if city in positions:
+                nx, ny = positions[city]
+                coords[city] = (int(inner.x + nx * inner.width), int(inner.y + ny * inner.height))
+            else:
+                angle = 2 * math.pi * i / len(cities) - math.pi / 2
+                coords[city] = (int(area.centerx + math.cos(angle) * radius), int(area.centery + math.sin(angle) * radius))
         seen = set()
         for city, edges in graph.items():
             for neighbor, distance in edges:
@@ -199,10 +208,10 @@ class AssetPopup(UILayer):
                 pygame.draw.rect(ui.screen, CARD, label.get_rect(center=mid).inflate(8, 4), border_radius=4)
                 ui.screen.blit(label, label.get_rect(center=mid))
         for city, pos in coords.items():
-            pygame.draw.circle(ui.screen, ACCENT, pos, 18)
-            pygame.draw.circle(ui.screen, CARD, pos, 18, 3)
+            pygame.draw.circle(ui.screen, ACCENT, pos, 14)
+            pygame.draw.circle(ui.screen, CARD, pos, 14, 3)
             label = ui.fonts["small"].render(city, True, INK)
-            ui.screen.blit(label, label.get_rect(center=(pos[0], pos[1] + 32)))
+            ui.screen.blit(label, label.get_rect(center=(pos[0], pos[1] + 18)))
 
     def _draw_relationship_graph(self, scene: "PlayScene", ui: UIContext, area: pygame.Rect) -> None:
         nodes = list(scene.engine.relationships.adjacency.keys())

@@ -87,7 +87,8 @@ def load_hobby_tree(path: str | Path) -> HobbyTree:
 
 
 def load_map_graph(path: str | Path) -> MapGraph:
-    return MapGraph.from_routes(load_json(path)["routes"])
+    data = load_json(path)
+    return MapGraph.from_routes(data["routes"], data.get("cities"))
 
 
 def load_dialogue_tree(path: str | Path) -> DialogueTree:
@@ -110,6 +111,6 @@ def load_game_data(data_dir: str | Path = DEFAULT_DATA_DIR) -> GameData:
         profiles=profiles_data["profiles"],
         relationship_graph=RelationshipGraph.from_edges(profiles_data["relationships"]),
         hobby_tree=HobbyTree.from_nested_dict(dialogue_data["hobbies"]),
-        map_graph=MapGraph.from_routes(world_map_data["routes"]),
+        map_graph=MapGraph.from_routes(world_map_data["routes"], world_map_data.get("cities")),
         dialogue_tree=DialogueTree.from_dict(dialogue_data),
     )

@@ -33,7 +33,7 @@ class MatchAnalysis:
 class MatchmakingEngine:
     # 기획자가 언제든 한 곳에서 쉽게 밸런스를 수정할 수 있도록 상수화
     PENALTY_HOBBY = 10
-    PENALTY_TRAVEL = 5
+    PENALTY_TRAVEL = 0.2  # 한계 거리를 km 단위로 초과할 때 km당 부과되는 벌점
     PASS_SCORE = 60
 
     def __init__(
@@ -74,7 +74,7 @@ class MatchmakingEngine:
         first_id: str,
         second_id: str,
         *,
-        long_distance_limit: float = 8,
+        long_distance_limit: float = 150,
         hobby_distance_limit: int = 4,
     ) -> MatchAnalysis:
         first = self.get_profile(first_id)   # 이진 탐색 호출
@@ -114,7 +114,7 @@ class MatchmakingEngine:
         first_id: str,
         second_id: str,
         *,
-        long_distance_limit: float = 8,
+        long_distance_limit: float = 150,
         hobby_distance_limit: int = 4,
     ) -> MatchResult:
         first = self.get_profile(first_id)   # 이진 탐색 호출

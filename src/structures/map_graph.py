@@ -8,6 +8,8 @@ class MapGraph:
     """Weighted undirected graph for shortest-distance city checks."""
 
     adjacency: dict[str, list[tuple[str, float]]] = field(default_factory=dict)
+    # 도시 이름 -> 정규화된 (x, y) 좌표 (0..1). 지도 시각화 배치에만 사용됨.
+    positions: dict[str, tuple[float, float]] = field(default_factory=dict)
     # (도시A, 도시B)의 최단 거리를 기억하는 수첩
     _distance_cache: dict[tuple[str, str], float] = field(default_factory=dict)
 
@@ -72,8 +74,10 @@ class MapGraph:
         return math.inf
 
     @classmethod
-    def from_routes(cls, routes: list[dict]) -> "MapGraph":
+    def from_routes(cls, routes: list[dict], cities: list[dict] | None = None) -> "MapGraph":
         graph = cls()
         for route in routes:
             graph.add_route(route["from"], route["to"], route["distance"])
+        for city in cities or []:
+            graph.positions[city["name"]] = (city["x"], city["y"])
         return graph

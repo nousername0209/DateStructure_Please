@@ -54,7 +54,7 @@
       "choices": []
     },
     "city_distance_criteria": {
-      "text": "두 도시 사이의 최단 거리를 계산하십시오. 8km 이내일 경우 감점이 없습니다. 8km를 초과할 경우 1km당 5점씩 감점이 적용됩니다.",
+      "text": "두 도시 사이의 최단 거리를 계산하십시오. 150km 이내일 경우 감점이 없습니다. 150km를 초과할 경우 1km당 0.2점씩 감점이 적용됩니다.",
       "choices": []
     },
     "relationship_criteria": {
@@ -96,6 +96,9 @@
             "children": [
               {
                 "name": "jazz"
+              },
+              {
+                "name": "classic"
               }
             ]
           },

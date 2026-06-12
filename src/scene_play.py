@@ -25,6 +25,10 @@ GRAY = (218, 218, 218)
 SOFT_RED = (255, 235, 231)
 PORTRAIT_BG = (235, 231, 222)
 
+# 프로필 카드 초상화: assets/img의 {gender}_{1..AVATAR_VARIANTS}.png를 정사각형으로 표시한다.
+AVATAR_SIZE = 116
+AVATAR_VARIANTS = 17
+
 # 관계 종류별 화살표 색상. adjacency에 저장된 kind 문자열로 조회한다.
 REL_COLORS = {"best_friend": ACCENT, "ex_partner": BLUE, "scam_partner": WARN}
 REL_DEFAULT_COLOR = MUTED
@@ -333,6 +337,9 @@ class PlayScene:
         self.notice_timer = 0.0
         self.dialogue_history: list[str] = []
         self.asset_dir = Path(__file__).resolve().parents[1] / "assets" / "data"
+        self.avatar_dir = Path(__file__).resolve().parents[1] / "assets" / "img"
+        # 초상화는 처음 그릴 때 한 번만 로드/스케일하고 파일명 기준으로 캐시한다.
+        self._avatar_cache: dict[str, pygame.Surface | None] = {}
         self.sounds: dict[str, pygame.mixer.Sound] = {}
         self.engine.ui_stack.clear()
         self.engine.ui_stack.push(DialoguePopup())
@@ -513,39 +520,31 @@ class PlayScene:
             pygame.draw.rect(ui.screen, ACCENT, pygame.Rect(box.x, box.y, fill_width, box.height), border_radius=8)
         ui.text("body", f"Reputation: {self.engine.reputation}", (box.x + 18, box.y + 16), (255, 255, 255) if fill_width > 130 else INK)
 
-    def _draw_avatar(self, ui: UIContext, profile: dict, center: tuple[int, int]) -> None:
+    def _avatar_surface(self, profile: dict) -> pygame.Surface | None:
         gender = profile.get("gender", "unknown")
+        if gender not in ("male", "female"):
+            gender = "male"
+        # 기존 절차적 아바타와 같은 시드라 동일 프로필은 항상 같은 초상화를 받는다.
         seed = sum(ord(ch) for ch in profile["id"] + profile["name"])
-        skin = [(244, 202, 169), (226, 177, 138), (198, 142, 105)][seed % 3]
-        hair = [(54, 42, 36), (82, 57, 43), (42, 47, 56), (115, 77, 45)][seed % 4]
-        shirt = (215, 92, 115) if gender == "female" else (67, 118, 188)
-        cx, cy = center
+        filename = f"{gender}_{seed % AVATAR_VARIANTS + 1}.png"
+        if filename not in self._avatar_cache:
+            try:
+                image = pygame.image.load(self.avatar_dir / filename).convert()
+                self._avatar_cache[filename] = pygame.transform.smoothscale(image, (AVATAR_SIZE, AVATAR_SIZE))
+            except (pygame.error, FileNotFoundError):
+                self._avatar_cache[filename] = None
+        return self._avatar_cache[filename]
 
-        pygame.draw.circle(ui.screen, (0, 0, 0, 24), (cx + 3, cy + 5), 58)
-        pygame.draw.circle(ui.screen, PORTRAIT_BG, (cx, cy), 58)
-        pygame.draw.circle(ui.screen, shirt, (cx, cy + 48), 43)
-        pygame.draw.rect(ui.screen, skin, pygame.Rect(cx - 13, cy + 22, 26, 34), border_radius=8)
-
-        if gender == "female":
-            pygame.draw.ellipse(ui.screen, hair, pygame.Rect(cx - 42, cy - 44, 84, 78))
+    def _draw_avatar(self, ui: UIContext, profile: dict, center: tuple[int, int]) -> None:
+        half = AVATAR_SIZE // 2
+        avatar_rect = pygame.Rect(center[0] - half, center[1] - half, AVATAR_SIZE, AVATAR_SIZE)
+        pygame.draw.rect(ui.screen, (0, 0, 0, 24), avatar_rect.move(3, 5))
+        portrait = self._avatar_surface(profile)
+        if portrait is not None:
+            ui.screen.blit(portrait, avatar_rect)
         else:
-            pygame.draw.ellipse(ui.screen, hair, pygame.Rect(cx - 38, cy - 45, 76, 50))
-
-        pygame.draw.ellipse(ui.screen, skin, pygame.Rect(cx - 36, cy - 34, 72, 78))
-        pygame.draw.rect(ui.screen, skin, pygame.Rect(cx - 28, cy - 34, 56, 24), border_radius=12)
-
-        if gender == "female":
-            pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 36, cy - 43, 72, 36), math.pi, math.tau, 9)
-            pygame.draw.line(ui.screen, hair, (cx - 27, cy - 22), (cx - 35, cy + 17), 7)
-            pygame.draw.line(ui.screen, hair, (cx + 27, cy - 22), (cx + 35, cy + 17), 7)
-        else:
-            pygame.draw.arc(ui.screen, hair, pygame.Rect(cx - 34, cy - 42, 68, 34), math.pi, math.tau, 10)
-            pygame.draw.line(ui.screen, hair, (cx - 26, cy - 22), (cx + 26, cy - 22), 7)
-
-        pygame.draw.circle(ui.screen, INK, (cx - 14, cy - 2), 3)
-        pygame.draw.circle(ui.screen, INK, (cx + 14, cy - 2), 3)
-        pygame.draw.line(ui.screen, (150, 74, 72), (cx - 11, cy + 20), (cx + 11, cy + 20), 2)
-        pygame.draw.circle(ui.screen, CARD, (cx, cy), 58, 3)
+            pygame.draw.rect(ui.screen, PORTRAIT_BG, avatar_rect)
+        pygame.draw.rect(ui.screen, INK, avatar_rect, 3)
 
     def _draw_profile_card(self, ui: UIContext, profile: dict, rect: pygame.Rect) -> None:
         pygame.draw.rect(ui.screen, (0, 0, 0, 26), pygame.Rect(rect.x + 4, rect.y + 5, rect.width, rect.height), border_radius=10)

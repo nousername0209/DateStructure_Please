@@ -135,6 +135,20 @@ class DialoguePopup(UILayer):
             ui.text("body", line, (panel.x + 28, y), INK)
             y += ui.fonts["body"].get_height() + 7
 
+        if dialogue.node_id == scene.engine.dialogue.start_id:
+            shortcut_x = panel.x + 28
+            shortcut_y = choice_y - 92
+            shortcut_color = (156, 160, 168)
+            shortcut_col_1 = shortcut_x
+            shortcut_col_2 = shortcut_x + 118
+            shortcut_col_3 = shortcut_x + 236
+            ui.text("small", "단축키", (shortcut_x, shortcut_y), shortcut_color)
+            ui.text("small", "Q: Hobby Tree", (shortcut_col_1, shortcut_y + 24), shortcut_color)
+            ui.text("small", "W: Relations", (shortcut_col_2, shortcut_y + 24), shortcut_color)
+            ui.text("small", "E: Cities", (shortcut_col_3, shortcut_y + 24), shortcut_color)
+            ui.text("small", "O: Reject", (shortcut_col_1, shortcut_y + 46), shortcut_color)
+            ui.text("small", "P: Match", (shortcut_col_2, shortcut_y + 46), shortcut_color)
+
         if scene.dialogue_history:
             ui.button(pygame.Rect(panel.right - 214, panel.y + 14, 82, 34), "BACK", "dialogue_back", BLUE)
 
@@ -288,30 +302,127 @@ class AssetPopup(UILayer):
         if root is None:
             return
         max_depth = max(node.depth for node in scene.engine.hobbies.nodes.values())
-        y_step = area.height // (max_depth + 1) if max_depth else 0
+        top_y = area.y + 34
+        bottom_y = area.bottom - 56
+        y_step = (bottom_y - top_y) // max_depth if max_depth else 0
+        font = ui.fonts["small"]
 
-        def draw_node(node, x_min: int, x_max: int, y: int) -> None:
-            x = (x_min + x_max) // 2
-            if node.children:
-                width = max(1, (x_max - x_min) // len(node.children))
-                for i, child in enumerate(node.children):
-                    child_min = x_min + i * width
-                    child_max = child_min + width
-                    child_x = (child_min + child_max) // 2
-                    child_y = y + y_step
-                    pygame.draw.line(ui.screen, LINE, (x, y), (child_x, child_y), 3)
-                    draw_node(child, child_min, child_max, child_y)
-            node_rect = pygame.Rect(x - 48, y - 18, 96, 36)
+        leaves = []
+
+        def collect_leaves(node) -> None:
+            if not node.children:
+                leaves.append(node)
+                return
+            for child in node.children:
+                collect_leaves(child)
+
+        collect_leaves(root)
+
+        node_widths = {
+            node.name: max(96, font.size(node.name)[0] + 28)
+            for node in scene.engine.hobbies.nodes.values()
+        }
+        max_half_width = max(width // 2 for width in node_widths.values())
+        left = area.x + max_half_width + 8
+        right = area.right - max_half_width - 8
+        leaf_x = {}
+
+        if len(leaves) == 1:
+            leaf_x[leaves[0].name] = (left + right) // 2
+        else:
+            spacing = (right - left) / (len(leaves) - 1)
+            for index, leaf in enumerate(leaves):
+                leaf_x[leaf.name] = round(left + spacing * index)
+
+        positions: dict[str, tuple[int, int]] = {}
+
+        def place_node(node) -> int:
+            y = top_y + node.depth * y_step
+            if not node.children:
+                x = leaf_x[node.name]
+            else:
+                child_positions = [place_node(child) for child in node.children]
+                x = round(sum(child_positions) / len(child_positions))
+            positions[node.name] = (x, y)
+            return x
+
+        place_node(root)
+
+        def draw_edges(node) -> None:
+            x, y = positions[node.name]
+            for child in node.children:
+                child_x, child_y = positions[child.name]
+                pygame.draw.line(ui.screen, LINE, (x, y), (child_x, child_y), 3)
+                draw_edges(child)
+
+        def draw_nodes(node) -> None:
+            x, y = positions[node.name]
+            width = node_widths[node.name]
+            node_rect = pygame.Rect(x - width // 2, y - 18, width, 36)
             pygame.draw.rect(ui.screen, CARD, node_rect, border_radius=6)
             pygame.draw.rect(ui.screen, ACCENT, node_rect, 2, border_radius=6)
-            label = ui.fonts["small"].render(node.name, True, INK)
+            label = font.render(node.name, True, INK)
             ui.screen.blit(label, label.get_rect(center=node_rect.center))
-        draw_node(root, area.x, area.right, area.y + 28)
+            for child in node.children:
+                draw_nodes(child)
+
+        draw_edges(root)
+        draw_nodes(root)
 
     def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
         for button in scene.buttons:
             if button.contains(pos) and button.action == "close_asset":
                 scene._play_sound("click")
+                scene.close_top_layer()
+                return True
+        return True
+
+class SettingsPopup(UILayer):
+    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
+        rect = pygame.Rect(WIDTH - 252, 88 + depth * 14, 210, 124)
+        shadow = pygame.Surface((rect.width + 16, rect.height + 16), pygame.SRCALPHA)
+        pygame.draw.rect(shadow, (22, 24, 28, 64), shadow.get_rect(), border_radius=12)
+        ui.screen.blit(shadow, (rect.x + 8 + depth * 3, rect.y + 10 + depth * 3))
+        pygame.draw.rect(ui.screen, CARD, rect, border_radius=8)
+        pygame.draw.rect(ui.screen, BLUE, rect, 3, border_radius=8)
+        ui.button(pygame.Rect(rect.x + 18, rect.y + 18, rect.width - 36, 42), "RULEBOOK", "settings_rules", ACCENT)
+        ui.button(pygame.Rect(rect.x + 18, rect.y + 70, rect.width - 36, 42), "EXIT", "settings_exit", WARN)
+
+    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
+        for button in scene.buttons:
+            if not button.contains(pos):
+                continue
+            if button.action == "settings_rules":
+                scene._play_sound("click")
+                scene.dialogue_history.clear()
+                scene.engine.dialogue.reset_to_root()
+                scene.engine.ui_stack.clear()
+                scene.engine.ui_stack.push(DialoguePopup())
+                return True
+            if button.action == "settings_exit":
+                scene._play_sound("click")
+                scene.running = False
+                return True
+        return True
+
+
+class ExitConfirmPopup(UILayer):
+    def draw(self, scene: "PlayScene", ui: UIContext, depth: int) -> None:
+        rect = pygame.Rect(WIDTH // 2 - 190, HEIGHT // 2 - 95, 380, 190)
+        ui.popup_frame(rect, "Exit Game?", WARN, depth)
+        ui.text("body", "Are you sure you want to quit?", (rect.x + 42, rect.y + 78), INK)
+        ui.button(pygame.Rect(rect.x + 42, rect.bottom - 66, 132, 42), "YES", "exit_yes", WARN)
+        ui.button(pygame.Rect(rect.right - 174, rect.bottom - 66, 132, 42), "NO", "exit_no", ACCENT)
+
+    def handle_click(self, scene: "PlayScene", pos: tuple[int, int]) -> bool:
+        for button in scene.buttons:
+            if not button.contains(pos):
+                continue
+            scene._play_sound("click")
+            if button.action == "exit_yes":
+                scene.running = False
+                return True
+            if button.action == "exit_no":
                 scene.close_top_layer()
                 return True
         return True
@@ -341,6 +452,7 @@ class PlayScene:
         # 초상화는 처음 그릴 때 한 번만 로드/스케일하고 파일명 기준으로 캐시한다.
         self._avatar_cache: dict[str, pygame.Surface | None] = {}
         self.sounds: dict[str, pygame.mixer.Sound] = {}
+        self.running = False
         self.engine.ui_stack.clear()
         self.engine.ui_stack.push(DialoguePopup())
 
@@ -351,18 +463,23 @@ class PlayScene:
             self.sounds = {"click": self._make_tone(520, 0.045, 0.22), "success": self._make_tone(740, 0.08, 0.25), "error": self._make_tone(190, 0.12, 0.28)}
         except pygame.error:
             self.sounds = {}
-        screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
         pygame.display.set_caption("DateStructure, Please")
         clock = pygame.time.Clock()
         fonts = {"title": pygame.font.SysFont(["malgungothic", "applegothic"], 34), "heading": pygame.font.SysFont(["malgungothic", "applegothic"], 24), "body": pygame.font.SysFont(["malgungothic", "applegothic"], 18), "small": pygame.font.SysFont(["malgungothic", "applegothic"], 15), "popup_title": pygame.font.SysFont(["malgungothic", "applegothic"], 20)}
-        running = True
-        while running:
+        self.running = True
+        while self.running:
             dt = clock.tick(FPS) / 1000
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    running = self._handle_escape()
+                    self.running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.running = self._handle_escape()
+                    elif event.key in {pygame.K_q, pygame.K_w, pygame.K_e}:
+                        self._handle_asset_shortcut(event.key)
+                    elif event.key in {pygame.K_o, pygame.K_p}:
+                        self._handle_decision_shortcut(event.key)
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     self._handle_click(event.pos)
             self._update(dt)
@@ -423,16 +540,53 @@ class PlayScene:
                 self._reject_pair()
             elif button.action == "next":
                 self._approve_pair()
+            elif button.action == "settings":
+                self.engine.ui_stack.push(SettingsPopup())
+                self.notice_text = ""
             elif button.action in {"tree", "graph_rel", "graph_city"}:
                 self.engine.ui_stack.push(AssetPopup(button.action))
                 self.notice_text = ""
             return
 
+    def _handle_asset_shortcut(self, key: int) -> None:
+        shortcut_map = {
+            pygame.K_q: "tree",
+            pygame.K_w: "graph_rel",
+            pygame.K_e: "graph_city",
+        }
+        kind = shortcut_map[key]
+        top_layer = self.engine.ui_stack.peek()
+
+        if isinstance(top_layer, AssetPopup):
+            self._play_sound("click")
+            self.engine.ui_stack.pop()
+            if top_layer.kind != kind:
+                self.engine.ui_stack.push(AssetPopup(kind))
+            self.notice_text = ""
+            return
+
+        if top_layer is None and self.game_state == "playing":
+            self._play_sound("click")
+            self.engine.ui_stack.push(AssetPopup(kind))
+            self.notice_text = ""
+
+    def _handle_decision_shortcut(self, key: int) -> None:
+        if self.engine.ui_stack.peek() is not None or self.game_state != "playing":
+            return
+
+        self._play_sound("click")
+        if key == pygame.K_o:
+            self._reject_pair()
+        elif key == pygame.K_p:
+            self._approve_pair()
+
     def _handle_escape(self) -> bool:
         top_layer = self.engine.ui_stack.peek()
         if isinstance(top_layer, UILayer):
             return top_layer.on_escape(self)
-        return False
+        if self.game_state == "playing":
+            self.engine.ui_stack.push(ExitConfirmPopup())
+        return True
 
     def _approve_pair(self) -> None:
         first, second = self._current_pair()
@@ -489,6 +643,7 @@ class PlayScene:
         ui.text("title", "DateStructure, Please", (40, 26), INK)
         ui.text("body", "Moderator review desk", (44, 68), MUTED)
         self._draw_reputation(ui)
+        self._draw_settings_button(ui)
         self._draw_profile_card(ui, analysis.first, pygame.Rect(42, 116, 366, 270))
         self._draw_profile_card(ui, analysis.second, pygame.Rect(552, 116, 366, 270))
         self._draw_decision_hint(ui, analysis)
@@ -512,13 +667,19 @@ class PlayScene:
         pygame.draw.circle(screen, (237, 230, 214), (496, 255), 56)
 
     def _draw_reputation(self, ui: UIContext) -> None:
-        box = pygame.Rect(724, 24, 194, 54)
+        box = pygame.Rect(668, 24, 194, 54)
         pygame.draw.rect(ui.screen, CARD, box, border_radius=8)
         pygame.draw.rect(ui.screen, LINE, box, 2, border_radius=8)
         fill_width = max(0, min(box.width, int(box.width * self.engine.reputation / 100)))
         if fill_width:
             pygame.draw.rect(ui.screen, ACCENT, pygame.Rect(box.x, box.y, fill_width, box.height), border_radius=8)
         ui.text("body", f"Reputation: {self.engine.reputation}", (box.x + 18, box.y + 16), (255, 255, 255) if fill_width > 130 else INK)
+
+    def _draw_settings_button(self, ui: UIContext) -> None:
+        rect = pygame.Rect(878, 24, 54, 54)
+        ui.button(rect, "", "settings", BLUE)
+        for y in (rect.y + 17, rect.y + 27, rect.y + 37):
+            pygame.draw.line(ui.screen, (255, 255, 255), (rect.x + 15, y), (rect.right - 15, y), 4)
 
     def _avatar_surface(self, profile: dict) -> pygame.Surface | None:
         gender = profile.get("gender", "unknown")
@@ -605,10 +766,20 @@ class PlayScene:
         title = "STAGE CLEAR" if clear else "GAME OVER"
         body = f"업무를 마쳤습니다. 남은 명성: {self.engine.reputation}" if clear else "명성이 바닥나 심사관 자격을 잃었습니다."
         color = ACCENT if clear else WARN
-        panel = pygame.Rect(WIDTH // 2 - 210, HEIGHT // 2 - 120, 420, 240)
+        panel = pygame.Rect(WIDTH // 2 - 240, HEIGHT // 2 - 120, 480, 240)
         ui.popup_frame(panel, title, color, 0)
-        ui.text("heading", body, (panel.x + 42, panel.y + 92), INK)
-        ui.button(pygame.Rect(panel.centerx - 72, panel.bottom - 76, 144, 42), "RESTART", "restart", BLUE)
+        body_font = pygame.font.SysFont(["malgungothic", "applegothic"], 22, bold=True)
+        body_lines = ui.wrap_text("body", body, panel.width - 84)
+        line_height = body_font.get_height() + 8
+        restart_rect = pygame.Rect(panel.centerx - 72, panel.bottom - 76, 144, 42)
+        content_top = panel.y + 76
+        content_bottom = restart_rect.y - 22
+        text_block_height = len(body_lines) * line_height - 8
+        start_y = content_top + (content_bottom - content_top - text_block_height) // 2 + body_font.get_height() // 2
+        for index, line in enumerate(body_lines):
+            label = body_font.render(line, True, INK)
+            ui.screen.blit(label, label.get_rect(center=(panel.centerx, start_y + index * line_height)))
+        ui.button(restart_rect, "RESTART", "restart", BLUE)
 
     def go_back_dialogue(self) -> None:
         if self.dialogue_history:
@@ -631,3 +802,4 @@ class PlayScene:
 
 def run_game(engine: MatchmakingEngine) -> None:
     PlayScene(engine).run()
+

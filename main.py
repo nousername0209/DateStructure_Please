@@ -1,6 +1,11 @@
+"""
+requirements:
+python 3.12
+pygame 2.5.7
+"""
+
 from src.engine import build_engine
 from src.scene_play import run_game
-
 
 
 def main():

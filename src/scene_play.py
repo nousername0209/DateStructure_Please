@@ -736,8 +736,8 @@ class PlayScene:
         ui.text("body", text, (panel.x + 22, panel.y + 17), color)
         ui.text("small", "Use gender, city, hobby, and relation graphs to decide.", (panel.x + 22, panel.y + 46), MUTED)
         # 디버그용: 시스템이 계산한 점수와 (관계로 조정된) 통과 기준선을 표시
-        ui.text("body", f"score: {analysis.score}", (panel.right + 20, panel.y + 17), INK)
-        ui.text("body", f"pass ≥ {analysis.pass_threshold}", (panel.right + 20, panel.y + 41), INK)
+        # ui.text("body", f"score: {analysis.score}", (panel.right + 20, panel.y + 17), INK)
+        # ui.text("body", f"pass ≥ {analysis.pass_threshold}", (panel.right + 20, panel.y + 41), INK)
 
     def _draw_asset_buttons(self, ui: UIContext) -> None:
         panel = pygame.Rect(278, 492, 404, 74)

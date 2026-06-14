@@ -463,7 +463,7 @@ class PlayScene:
             self.sounds = {"click": self._make_tone(520, 0.045, 0.22), "success": self._make_tone(740, 0.08, 0.25), "error": self._make_tone(190, 0.12, 0.28)}
         except pygame.error:
             self.sounds = {}
-        screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+        screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("DateStructure, Please")
         clock = pygame.time.Clock()
         fonts = {"title": pygame.font.SysFont(["malgungothic", "applegothic"], 34), "heading": pygame.font.SysFont(["malgungothic", "applegothic"], 24), "body": pygame.font.SysFont(["malgungothic", "applegothic"], 18), "small": pygame.font.SysFont(["malgungothic", "applegothic"], 15), "popup_title": pygame.font.SysFont(["malgungothic", "applegothic"], 20)}
